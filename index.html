@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>창신 임장 수첩</title>
-<meta name="description" content="창신동 재개발 임장용 공동 수첩: 중개업소 75곳과 후보 매물, 통화·방문 체크와 메모">
+<meta name="description" content="창신동 재개발 임장 수첩: 중개업소 75곳과 후보 매물, 통화·방문 체크, 메모, 중개업소 리뷰">
 <meta name="theme-color" content="#F2F5F3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0F1514" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -77,11 +77,14 @@
       </svg>
     </div>
 
+    <p class="hint legend"><b>체크와 메모</b>는 이 기기에서 나만 봐요. <b>리뷰</b>는 링크를 가진 모두가 봐요.</p>
     <div class="chips" id="filters" role="group" aria-label="목록 걸러 보기">
       <button class="chip" data-f="all" aria-pressed="true">전체</button>
       <button class="chip" data-f="first" aria-pressed="false">먼저 갈 곳</button>
       <button class="chip" data-f="todo" aria-pressed="false">아직 안 감</button>
       <button class="chip" data-f="memo" aria-pressed="false">메모 있음</button>
+      <button class="chip" data-f="review" aria-pressed="false">리뷰 있음</button>
+      <button class="chip" data-f="fake" aria-pressed="false">허위매물 신고</button>
     </div>
     <div class="list" id="brokerList"></div>
     <p class="foot">출처: 서울부동산정보광장 개업공인중개사 등록부 (2026년 10월 9일 조회). 창신동에 등록된 59곳 전부와, 길 건너 숭인동 46곳 중 지봉로·동묘앞역 주변 16곳을 넣었어요. 전화번호가 없는 곳은 등록부에 번호가 없는 곳이에요.</p>
@@ -122,7 +125,7 @@
 <dialog id="nameDlg">
   <form method="dialog" id="nameForm">
     <h2>내 이름</h2>
-    <p class="hint">메모와 체크에 누가 적었는지 남아요. 같이 쓰는 사람들이 알아볼 이름을 적어주세요.</p>
+    <p class="hint">리뷰에 표시되는 이름이에요. 실명이 아니어도 돼요.</p>
     <input type="text" id="nameInput" maxlength="20" placeholder="예: 혁진" autocomplete="off">
     <div class="acts"><button class="tg" type="button" id="nameCancel">나중에</button><button class="tg visit" type="submit" aria-pressed="true">저장</button></div>
   </form>
@@ -132,5 +135,6 @@
 <script src="./data.js"></script>
 <script type="module" src="./sync.js"></script>
 <script src="./app.js"></script>
+<script src="./reviews.js"></script>
 </body>
 </html>

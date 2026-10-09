@@ -1,7 +1,8 @@
-// 창신 임장 수첩 — 화면 동작. 데이터는 data.js, 공동 저장은 sync.js, 설정은 config.js.
+// 창신 임장 수첩 — 화면 동작. 데이터는 data.js.
+// 체크와 메모는 이 기기(localStorage)에만 저장돼서 나만 봐요. 모두가 보는 건 리뷰(reviews.js)뿐이에요.
 (function () {
   var D = window.CS_DATA, ST = D.ST, B = D.B, L = D.L;
-  var store = {}, sync = null, timers = {}, chains = {}, unsigned = {}, filter = "all", street = "";
+  var store = {}, timers = {}, filter = "all", street = "";
   var me = "";
   try { me = localStorage.getItem("cs-name") || ""; } catch (e) {}
 
@@ -11,20 +12,11 @@
   function setSave(state, text) { saveEl.dataset.state = state; saveEl.textContent = text; }
   function loadLocal() { try { var s = localStorage.getItem("changsin-notes"); if (s) store = JSON.parse(s) || {}; } catch (e) {} }
   function saveLocal() { try { localStorage.setItem("changsin-notes", JSON.stringify(store)); } catch (e) {} }
-  function rec(id) { return store[id] || (store[id] = { status: "", memo: "", bunji: "", by: "", at: "" }); }
+  function rec(id) { return store[id] || (store[id] = { status: "", memo: "", bunji: "", at: "" }); }
 
   function persist(id) {
-    var r = rec(id);
-    r.by = me || ""; r.at = new Date().toISOString();
-    if (!me) unsigned[id] = 1; else delete unsigned[id];
-    saveLocal(); paintBy(id);
-    if (!sync) { setSave("", "이 기기에만 저장됨"); return; }
-    var body = { status: r.status || "", memo: (r.memo || "").slice(0, 2000), bunji: (r.bunji || "").slice(0, 100), by: r.by.slice(0, 20), at: r.at };
-    setSave("", "저장 중");
-    chains[id] = (chains[id] || Promise.resolve())
-      .then(function () { return sync.set(id, body); })
-      .then(function () { setSave("ok", "모두에게 저장됨"); })
-      .catch(function () { setSave("", "저장 실패 · 이 기기에는 남아 있어요"); });
+    rec(id).at = new Date().toISOString();
+    saveLocal(); setSave("ok", "내 메모 저장됨");
   }
   function later(id) { clearTimeout(timers[id]); timers[id] = setTimeout(function () { timers[id] = null; persist(id); }, 800); }
   // 화면을 닫거나 다른 앱으로 넘어갈 때, 아직 안 보낸 메모를 바로 저장해요.
@@ -66,15 +58,15 @@
       var acts = el("div", "acts");
       [["call", "통화함"], ["visit", "방문함"]].forEach(function (s) {
         var bt = el("button", "tg " + s[0], s[1]); bt.type = "button"; bt.setAttribute("aria-pressed", "false"); bt.dataset.s = s[0];
-        bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; paint(id); progress(); applyFilter(); persist(id); askName(); });
+        bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; paint(id); progress(); applyFilter(); persist(id); });
         acts.appendChild(bt);
       });
       c.appendChild(acts);
-      var ta = el("textarea"); ta.id = "memo-" + id; ta.rows = 1; ta.placeholder = "메모: 번지, 가격, 들은 얘기"; ta.setAttribute("aria-label", b[1] + " 메모");
+      var ta = el("textarea"); ta.id = "memo-" + id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 번지, 가격, 들은 얘기"; ta.setAttribute("aria-label", b[1] + " 메모");
       ta.addEventListener("input", function () { rec(id).memo = ta.value; later(id); });
-      ta.addEventListener("blur", function () { applyFilter(); askName(); });
+      ta.addEventListener("blur", applyFilter);
       c.appendChild(ta);
-      var by = el("p", "by"); by.id = "by-" + id; by.hidden = true; c.appendChild(by);
+      var rv = el("div", "rv"); rv.id = "rv-" + id; c.appendChild(rv);
       list.appendChild(c); cards[id] = c;
     });
     var e = el("p", "empty", "조건에 맞는 중개업소가 없어요."); e.id = "emptyB"; e.hidden = true; list.appendChild(e);
@@ -92,11 +84,9 @@
         var lb = el("label", "fld", "받아온 번지"); var inp = el("input"); inp.type = "text"; inp.id = "bunji-" + x.id; inp.placeholder = "예: 창신동 123-45"; inp.autocomplete = "off"; inp.maxLength = 100;
         inp.addEventListener("input", function () { rec(x.id).bunji = inp.value; later(x.id); }); lb.appendChild(inp); c.appendChild(lb);
       }
-      var ta = el("textarea"); ta.id = "memo-" + x.id; ta.rows = 1; ta.placeholder = "메모: 본 느낌, 깎을 수 있는 금액"; ta.setAttribute("aria-label", x.name + " 메모");
+      var ta = el("textarea"); ta.id = "memo-" + x.id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 본 느낌, 깎을 수 있는 금액"; ta.setAttribute("aria-label", x.name + " 메모");
       ta.addEventListener("input", function () { rec(x.id).memo = ta.value; later(x.id); });
-      ta.addEventListener("blur", askName);
       c.appendChild(ta);
-      var by = el("p", "by"); by.id = "by-" + x.id; by.hidden = true; c.appendChild(by);
       list.appendChild(c); cards[x.id] = c;
     });
   }
@@ -105,19 +95,12 @@
     var p = function (n) { return (n < 10 ? "0" : "") + n; };
     return (d.getMonth() + 1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
   }
-  function paintBy(id) {
-    var p = $("#by-" + id); if (!p) return; var r = store[id] || {};
-    var has = r.at && (r.status || (r.memo || "").trim() || (r.bunji || "").trim());
-    p.hidden = !has;
-    if (has) p.textContent = "마지막 수정: " + (r.by || "이름 없음") + " · " + when(r.at);
-  }
   function paint(id) {
     var c = cards[id]; if (!c) return; var r = store[id] || {};
     c.dataset.status = r.status || "";
     c.querySelectorAll(".tg").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.s === r.status)); });
     var ta = $("#memo-" + id); if (ta && document.activeElement !== ta && ta.value !== (r.memo || "")) ta.value = r.memo || "";
     var bj = $("#bunji-" + id); if (bj && document.activeElement !== bj && bj.value !== (r.bunji || "")) bj.value = r.bunji || "";
-    paintBy(id);
   }
   function paintAll() { Object.keys(cards).forEach(paint); progress(); applyFilter(); }
   function progress() {
@@ -135,6 +118,9 @@
       if (filter === "first" && !b[6]) ok = false;
       if (filter === "todo" && r.status) ok = false;
       if (filter === "memo" && !(r.memo || "").trim()) ok = false;
+      var RV = window.CS_REVIEWS;
+      if (filter === "review" && !(RV && RV.count(id))) ok = false;
+      if (filter === "fake" && !(RV && RV.fakes(id))) ok = false;
       cards[id].hidden = !ok; if (ok) { shown++; per[b[5]] = 1; }
     });
     document.querySelectorAll("#brokerList .grp").forEach(function (g) { g.hidden = !per[g.dataset.street]; });
@@ -142,10 +128,9 @@
   }
 
   // 이름
-  var dlg = $("#nameDlg"), nameBtn = $("#nameBtn"), asked = false;
-  function showName() { nameBtn.textContent = me ? "내 이름: " + me : "내 이름 정하기"; }
+  var dlg = $("#nameDlg"), nameBtn = $("#nameBtn");
+  function showName() { nameBtn.textContent = me ? "리뷰 이름: " + me : "리뷰에 쓸 이름 정하기"; }
   function openName() { $("#nameInput").value = me; if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", ""); }
-  function askName() { if (!me && !asked) { asked = true; openName(); } }
   nameBtn.addEventListener("click", openName);
   $("#nameCancel").addEventListener("click", function () { dlg.close ? dlg.close() : dlg.removeAttribute("open"); });
   $("#nameForm").addEventListener("submit", function (e) {
@@ -153,8 +138,17 @@
     me = $("#nameInput").value.trim().slice(0, 20);
     try { localStorage.setItem("cs-name", me); } catch (err) {}
     showName(); dlg.close ? dlg.close() : dlg.removeAttribute("open");
-    if (me) Object.keys(unsigned).forEach(persist); // 이름 정하기 전에 적은 것에도 이름을 붙여요.
+    nameWaiters.splice(0).forEach(function (f) { f(me); });
   });
+  var nameWaiters = [];
+  dlg.addEventListener("close", function () { nameWaiters.length = 0; }); // 이름 창을 그냥 닫으면 대기 중인 저장은 취소
+  // 리뷰(reviews.js)가 쓰는 연결 고리
+  window.CS_APP = {
+    B: B, cards: cards, el: el, when: when,
+    name: function () { return me; },
+    needName: function (then) { if (me) { then(me); return; } nameWaiters.push(then); openName(); },
+    refilter: function () { applyFilter(); }
+  };
 
   // 걸러 보기, 약도, 탭
   document.querySelectorAll("#filters .chip").forEach(function (ch) {
@@ -188,25 +182,5 @@
   // 시작
   buildBrokers(); buildListings(); loadLocal(); paintAll(); showName();
   try { var t = location.hash === "#listings" ? "listings" : localStorage.getItem("changsin-tab"); if (t === "listings") showTab("listings"); } catch (e) {}
-  setSave("", "불러오는 중");
-
-  window.CS_SYNC.then(function (s) {
-    if (!s) { setSave("", "이 기기에만 저장됨"); return; }
-    sync = s;
-    var first = true;
-    sync.subscribe(function (docs) {
-      if (first) { // 연결 전에 이 기기에만 적어 둔 메모를 공동 수첩으로 올려요.
-        first = false; var remote = {}; docs.forEach(function (d) { remote[d.id] = 1; });
-        Object.keys(store).forEach(function (id) { if (!remote[id] && cards[id] && hasContent(store[id])) persist(id); });
-      }
-      docs.forEach(function (d) {
-        var x = d.data || {}, a = document.activeElement;
-        var editing = a && (a.id === "memo-" + d.id || a.id === "bunji-" + d.id);
-        if (editing || timers[d.id]) return; // 내가 적는 중인 칸은 덮어쓰지 않아요
-        store[d.id] = { status: x.status || "", memo: x.memo || "", bunji: x.bunji || "", by: x.by || "", at: x.at || "" };
-      });
-      saveLocal(); paintAll();
-      if (saveEl.dataset.state !== "ok") setSave("ok", "공동 수첩 연결됨");
-    }, function () { sync = null; setSave("", "연결 끊김 · 이 기기에만 저장됨"); });
-  });
+  setSave("", "메모는 이 기기에만 저장");
 })();

@@ -1,15 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 수첩(room) 이름을 아는 사람만 그 수첩의 메모를 읽고 쓸 수 있어요. 수첩 목록은 조회할 수 없어요.
-    match /rooms/{room}/notes/{id} {
+    // 리뷰: 누구나 읽고, 한 기기가 중개업소 한 곳에 하나씩 써요. 고치기·지우기는 쓴 기기만.
+    match /rooms/{room}/reviews/{id} {
       allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['status', 'memo', 'bunji', 'by', 'at'])
-                   && request.resource.data.status in ['', 'call', 'visit']
-                   && request.resource.data.memo is string && request.resource.data.memo.size() <= 2000
-                   && request.resource.data.bunji is string && request.resource.data.bunji.size() <= 100
+      allow create, update: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['broker', 'uid', 'stars', 'kind', 'fake', 'text', 'by', 'at'])
+                   && request.resource.data.uid == request.auth.uid
+                   && request.resource.data.broker is string && request.resource.data.broker.size() <= 10
+                   && id == request.resource.data.broker + '_' + request.auth.uid
+                   && request.resource.data.stars is int && request.resource.data.stars >= 1 && request.resource.data.stars <= 5
+                   && request.resource.data.kind in ['', 'good', 'soso', 'bad']
+                   && request.resource.data.fake is bool
+                   && request.resource.data.text is string && request.resource.data.text.size() <= 500
                    && request.resource.data.by is string && request.resource.data.by.size() <= 20
                    && request.resource.data.at is string && request.resource.data.at.size() <= 40;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
     }
   }
 }

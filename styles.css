@@ -114,3 +114,34 @@ dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface)
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog form{display:flex;flex-direction:column;gap:10px}
 .grp{scroll-margin-top:176px}
+
+/* 리뷰 */
+.rv{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rv-sum{font:inherit;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;width:100%;text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.rv-none{color:var(--muted)}
+.rv-avg{font-weight:600;font-variant-numeric:tabular-nums}
+.rv-star,.rv-stars{color:var(--first)}
+.rv-n{color:var(--muted);font-variant-numeric:tabular-nums}
+.rv-fake{font-weight:600;color:var(--first);background:var(--first-soft);padding:1px 7px;border-radius:4px}
+.rv-go{margin-left:auto;color:var(--accent);font-weight:500;text-decoration:underline;text-underline-offset:2px}
+.rv-body{display:flex;flex-direction:column;gap:10px}
+.rv-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.rv-list:empty{display:none}
+.rv-item{border-left:3px solid var(--line);padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.rv-top{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.rv-stars{font-size:14px;letter-spacing:1px}
+.rv-tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.rv-tag.good{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.rv-tag.bad,.rv-tag.fake{color:var(--first);border-color:var(--first);background:var(--first-soft)}
+.rv-text{margin:0;font-size:14px;overflow-wrap:anywhere;white-space:pre-wrap}
+.rv-form{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:10px}
+.rv-h{margin:0;font-size:13px;font-weight:600}
+.rv-pick{display:flex;gap:2px}
+.rv-s{font:inherit;font-size:28px;line-height:1;padding:4px 5px;border:0;background:transparent;color:var(--line);cursor:pointer}
+.rv-s.on{color:var(--first)}
+.rv-check{display:flex;align-items:flex-start;gap:8px;font-size:14px;cursor:pointer}
+.rv-check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--first);flex:none}
+.rv-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.rv-save{font:inherit;font-size:14px;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--bg);cursor:pointer}
+.rv-msg{font-size:12px;color:var(--muted)}
+.legend b{color:var(--ink);font-weight:600}
