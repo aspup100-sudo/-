@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>창신 임장 수첩</title>
+<meta name="description" content="창신동 재개발 임장용 공동 수첩: 중개업소 75곳과 후보 매물, 통화·방문 체크와 메모">
+<meta name="theme-color" content="#F2F5F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1514" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="임장 수첩">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title-row">
+      <h1>창신 임장 수첩</h1>
+      <span class="save" id="save" data-state="">불러오는 중</span>
+    </div>
+    <p class="progress" id="progress">중개업소 75곳</p>
+    <div class="bar">
+      <button class="mini" id="nameBtn" type="button">내 이름 정하기</button>
+      <button class="mini" id="installBtn" type="button" hidden>홈 화면에 설치</button>
+      <span class="hint" id="iosHint" hidden>아이폰: 공유 버튼 → 홈 화면에 추가</span>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-brokers" aria-selected="true" aria-controls="brokers">중개업소</button>
+      <button role="tab" id="tab-listings" aria-selected="false" aria-controls="listings">후보 매물</button>
+    </div>
+  </header>
+
+  <section class="view" id="brokers" role="tabpanel" aria-labelledby="tab-brokers">
+    <div class="map">
+      <div class="map-head"><h2>약도</h2><span>길을 누르면 그 길의 중개업소만 보여요 · 축척 아님</span></div>
+      <svg viewBox="0 0 360 344" role="group" aria-label="창신동 약도. 길별 중개업소 수">
+        <ellipse class="zn" cx="120" cy="226" rx="44" ry="28"/>
+        <ellipse class="zn" cx="152" cy="146" rx="52" ry="40"/>
+        <ellipse class="zn" cx="214" cy="212" rx="34" ry="24"/>
+        <ellipse class="zn" cx="226" cy="116" rx="32" ry="26"/>
+        <text class="zt" x="120" y="230">창신10</text>
+        <text class="zt" x="152" y="150">창신9</text>
+        <text class="zt" x="214" y="216">창신12</text>
+        <text class="zt" x="226" y="120">창신 23</text>
+
+        <path class="rd" stroke-width="10" d="M20 276 L340 276"/>
+        <path class="rd" stroke-width="6" d="M20 320 L340 320"/>
+        <path class="rd" stroke-width="10" d="M292 276 L286 214 L276 134 L266 84 L258 44"/>
+        <path class="rd" stroke-width="6" d="M78 276 L84 224 L96 174 L104 124 L118 94"/>
+        <path class="rd" stroke-width="5" d="M290 250 L240 240"/>
+        <path class="rd" stroke-width="6" d="M266 84 L226 62 L186 50 L150 44"/>
+        <path class="rd" stroke-width="4" d="M120 276 L122 256 M160 276 L160 254 M200 276 L202 254 M240 276 L240 256"/>
+        <text class="rt" x="24" y="268">종로</text>
+        <text class="rt" x="24" y="336">청계천로</text>
+
+        <circle class="st-c" cx="66" cy="276" r="7" stroke="var(--l4)"/>
+        <text class="st-t" x="40" y="298">동대문역</text>
+        <circle class="st-c" cx="292" cy="276" r="7" stroke="var(--l1)"/>
+        <text class="st-t" x="268" y="298">동묘앞역</text>
+        <circle class="st-c" cx="268" cy="88" r="7" stroke="var(--l6)"/>
+        <text class="st-t" x="282" y="78">창신역</text>
+        <text class="callout" x="352" y="106" text-anchor="end">97~105번지에</text>
+        <text class="callout" x="352" y="119" text-anchor="end">성보·제일·하나·원탑</text>
+
+        <g class="cl" data-street="A" role="button" tabindex="0" aria-pressed="false" aria-label="지봉로 14곳"><circle cx="304" cy="168" r="15"/><text class="n" x="304" y="172">14</text><text class="l" x="286" y="196">지봉로</text></g>
+        <g class="cl" data-street="B" role="button" tabindex="0" aria-pressed="false" aria-label="지봉로5길 4곳"><circle cx="252" cy="240" r="13"/><text class="n" x="252" y="244">4</text><text class="l" x="184" y="262">지봉로5길</text></g>
+        <g class="cl" data-street="C" role="button" tabindex="0" aria-pressed="false" aria-label="창신길 일대 11곳"><circle cx="62" cy="196" r="15"/><text class="n" x="62" y="200">11</text><text class="l" x="24" y="174">창신길</text></g>
+        <g class="cl" data-street="D" role="button" tabindex="0" aria-pressed="false" aria-label="동망산길·낙산길 7곳"><circle cx="198" cy="34" r="13"/><text class="n" x="198" y="38">7</text><text class="l" x="118" y="30">동망산길</text></g>
+        <g class="cl" data-street="E" role="button" tabindex="0" aria-pressed="false" aria-label="종로 큰길과 골목 12곳"><circle cx="180" cy="276" r="15"/><text class="n" x="180" y="280">12</text></g>
+        <g class="cl" data-street="F" role="button" tabindex="0" aria-pressed="false" aria-label="청계천로 11곳"><circle cx="150" cy="320" r="13"/><text class="n" x="150" y="324">11</text></g>
+        <g class="cl" data-street="G" role="button" tabindex="0" aria-pressed="false" aria-label="숭인동 쪽 16곳"><circle cx="334" cy="228" r="13"/><text class="n" x="334" y="232">16</text><text class="l" x="316" y="254">숭인동</text></g>
+      </svg>
+    </div>
+
+    <div class="chips" id="filters" role="group" aria-label="목록 걸러 보기">
+      <button class="chip" data-f="all" aria-pressed="true">전체</button>
+      <button class="chip" data-f="first" aria-pressed="false">먼저 갈 곳</button>
+      <button class="chip" data-f="todo" aria-pressed="false">아직 안 감</button>
+      <button class="chip" data-f="memo" aria-pressed="false">메모 있음</button>
+    </div>
+    <div class="list" id="brokerList"></div>
+    <p class="foot">출처: 서울부동산정보광장 개업공인중개사 등록부 (2026년 10월 9일 조회). 창신동에 등록된 59곳 전부와, 길 건너 숭인동 46곳 중 지봉로·동묘앞역 주변 16곳을 넣었어요. 전화번호가 없는 곳은 등록부에 번호가 없는 곳이에요.</p>
+  </section>
+
+  <section class="view" id="listings" role="tabpanel" aria-labelledby="tab-listings" hidden>
+    <p class="hint">네이버·KB·재개발닷컴에서 확인한 매물이에요. 호가는 2026년 10월 9일 기준이에요.</p>
+    <div class="list" id="listingList"></div>
+    <h2>중개사에 물어볼 것</h2>
+    <ol class="ask">
+      <li>정확한 지번이 어떻게 되나요?</li>
+      <li>창신9·10·12·23 중 어느 구역 안인가요, 구역 밖인가요?</li>
+      <li>지금 임차인이 있나요? 있으면 만기가 언제인가요?</li>
+      <li>위반건축물로 등재돼 있나요?</li>
+      <li>대지가 한 필지인가요, 국공유지나 도로가 섞여 있나요?</li>
+      <li>광고에 안 올린 3억대 물건이 있나요?</li>
+    </ol>
+    <details>
+      <summary>구역별로 기억할 것</summary>
+      <ul>
+        <li>창신9·10: 정비구역 지정 완료. 토지거래허가구역이라 실거주 의무가 있어요. 권리산정기준일 2022.1.28.</li>
+        <li>창신12: 연번부여 단계(후보지 선정 전). 중개사 설명과 재개발닷컴 표기상 빌라는 토지거래허가 대상이 아니에요. 구청 확인 필요.</li>
+        <li>창신동 23: 정비구역 지정 완료. 권리산정기준일 2021.9.23. 최저 호가 6.5억.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>제외한 매물</summary>
+      <ul>
+        <li>302-1 고층·7층 (2억 5,500만 / 2억 9,000만): 구역 밖, 2020년 준공 원룸</li>
+        <li>13-28 다가구 (3억): 구역 밖</li>
+        <li>13-26 단독 (5억 4,000만): 중개사가 재개발 지역 아니라고 명시</li>
+        <li>601-3 B1층 (4억 9,000만, 창신9): 임대사업자 승계, 입주 2027.2 이후</li>
+        <li>충신동 1-427 도로 (4억): 창신이 아니고 지목이 도로</li>
+      </ul>
+    </details>
+  </section>
+</div>
+<dialog id="nameDlg">
+  <form method="dialog" id="nameForm">
+    <h2>내 이름</h2>
+    <p class="hint">메모와 체크에 누가 적었는지 남아요. 같이 쓰는 사람들이 알아볼 이름을 적어주세요.</p>
+    <input type="text" id="nameInput" maxlength="20" placeholder="예: 혁진" autocomplete="off">
+    <div class="acts"><button class="tg" type="button" id="nameCancel">나중에</button><button class="tg visit" type="submit" aria-pressed="true">저장</button></div>
+  </form>
+</dialog>
+<script>window.CS_SYNC=new Promise(function(r){window.__csSyncResolve=r});</script>
+<script src="./config.js"></script>
+<script src="./data.js"></script>
+<script type="module" src="./sync.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

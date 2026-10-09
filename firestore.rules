@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 수첩(room) 이름을 아는 사람만 그 수첩의 메모를 읽고 쓸 수 있어요. 수첩 목록은 조회할 수 없어요.
+    match /rooms/{room}/notes/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['status', 'memo', 'bunji', 'by', 'at'])
+                   && request.resource.data.status in ['', 'call', 'visit']
+                   && request.resource.data.memo is string && request.resource.data.memo.size() <= 2000
+                   && request.resource.data.bunji is string && request.resource.data.bunji.size() <= 100
+                   && request.resource.data.by is string && request.resource.data.by.size() <= 20
+                   && request.resource.data.at is string && request.resource.data.at.size() <= 40;
+    }
+  }
+}
