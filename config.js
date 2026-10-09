@@ -12,5 +12,7 @@ window.CS_CONFIG = {
     messagingSenderId: "25384605119",
     appId: "1:25384605119:web:740e06f94db6aa9c4dfd0a"
   },
-  room: "changsin"
+  room: "changsin",
+  // 카카오 지도 JavaScript 키. 카카오 개발자 콘솔에 등록한 사이트 주소에서만 동작해요. 비우면 지도와 동선이 꺼져요.
+  kakaoKey: "48af7d69f1624c954080053b5e54de9a"
 };

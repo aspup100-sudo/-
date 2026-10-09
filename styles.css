@@ -145,3 +145,41 @@ dialog form{display:flex;flex-direction:column;gap:10px}
 .rv-save{font:inherit;font-size:14px;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--bg);cursor:pointer}
 .rv-msg{font-size:12px;color:var(--muted)}
 .legend b{color:var(--ink);font-weight:600}
+
+/* 구역 목록, 지도, 동선 */
+a.mini{text-decoration:none;display:inline-block}
+.tabs.three{grid-template-columns:1fr 1fr 1fr}
+.tabs.three button{padding-inline:4px;font-variant-numeric:tabular-nums}
+.area{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 12px;color:inherit;text-decoration:none}
+.area-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.area-name{font-family:var(--display);font-size:24px;line-height:1.1}
+.area-go{font-size:13px;font-weight:500;color:var(--accent)}
+.lt.zone .lt-head{align-items:flex-start}
+.stage{margin:0;font-size:14px;font-weight:600;color:var(--accent)}
+.kmap{height:240px;border-radius:8px;overflow:hidden;margin-top:6px;background:var(--bg)}
+#rmapBox{padding:4px}
+#rmapBox .kmap{margin-top:0;height:260px}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:#15211E;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.25);display:block}
+.dot[data-status="call"]{background:#2460A7}
+.dot[data-status="visit"]{background:#0B6E5F}
+.dot[data-pick="1"]{width:20px;height:20px;border-color:#B4541A;border-width:3px}
+.pin{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:#0B6E5F;color:#fff;font:600 13px/1 system-ui,sans-serif;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.pin.start{background:#B4541A}
+.tg.pick[aria-pressed="true"]{background:var(--first-soft);border-color:var(--first);color:var(--first)}
+.bk.flash{outline:3px solid var(--first);outline-offset:2px}
+.rt-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+select{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:8px 10px}
+.rt-sum{margin:0;font-size:14px}
+.rt-sum b{font-size:16px}
+.rt-warn{color:var(--first)}
+.rt-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.rt-item{display:flex;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.rt-n{flex:none;width:26px;height:26px;border-radius:13px;background:var(--accent);color:var(--bg);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.rt-item.lost .rt-n{background:var(--muted)}
+.rt-main{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.rt-main .v{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.rt-leg{font-size:13px;color:var(--first);font-variant-numeric:tabular-nums}
+.acts .tg{padding-inline:2px}
+.grp{scroll-margin-top:190px}
+.bk{scroll-margin-top:190px}
+.blk{display:flex;flex-direction:column;gap:10px}

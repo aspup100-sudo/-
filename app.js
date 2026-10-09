@@ -1,7 +1,11 @@
-// 창신 임장 수첩 — 화면 동작. 데이터는 data.js.
-// 체크와 메모는 이 기기(localStorage)에만 저장돼서 나만 봐요. 모두가 보는 건 리뷰(reviews.js)뿐이에요.
+// 임장 수첩 — 화면 동작. 구역 목록은 areas.js, 구역별 데이터는 data*.js.
+// 체크·메모·동선 담기는 이 기기(localStorage)에만 저장돼서 나만 봐요. 모두가 보는 건 리뷰(reviews.js)뿐이에요.
 (function () {
-  var D = window.CS_DATA, ST = D.ST, B = D.B, L = D.L;
+  var AREAS = window.CS_AREAS || { order: [] };
+  var areaId = "";
+  try { areaId = new URLSearchParams(location.search).get("area") || ""; } catch (e) {}
+  var AREA = AREAS[areaId] && AREAS[areaId].data ? AREAS[areaId] : null;
+  var D = AREA ? AREA.data : { ST: {}, B: [], L: [] }, ST = D.ST, B = D.B, L = D.L || [];
   var store = {}, timers = {}, filter = "all", street = "";
   var me = "";
   try { me = localStorage.getItem("cs-name") || ""; } catch (e) {}
@@ -14,19 +18,20 @@
   function saveLocal() { try { localStorage.setItem("changsin-notes", JSON.stringify(store)); } catch (e) {} }
   function rec(id) { return store[id] || (store[id] = { status: "", memo: "", bunji: "", at: "" }); }
 
+  var listeners = [];
+  function changed(id) { listeners.forEach(function (f) { try { f(id); } catch (e) {} }); }
   function persist(id) {
     rec(id).at = new Date().toISOString();
     saveLocal(); setSave("ok", "내 메모 저장됨");
   }
   function later(id) { clearTimeout(timers[id]); timers[id] = setTimeout(function () { timers[id] = null; persist(id); }, 800); }
-  // 화면을 닫거나 다른 앱으로 넘어갈 때, 아직 안 보낸 메모를 바로 저장해요.
+  // 화면을 닫거나 다른 앱으로 넘어갈 때, 아직 저장 안 된 메모를 바로 저장해요.
   function flush() { Object.keys(timers).forEach(function (id) { if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; persist(id); } }); }
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flush(); });
   window.addEventListener("pagehide", flush);
-  function hasContent(r) { return !!(r && (r.status || (r.memo || "").trim() || (r.bunji || "").trim())); }
 
   function mapLinks(q) {
-    var full = "서울 종로구 " + q, f = document.createDocumentFragment();
+    var full = (AREA ? AREA.gu + " " : "") + q, f = document.createDocumentFragment();
     var a = el("a", null, "네이버지도"); a.href = "https://map.naver.com/p/search/" + encodeURIComponent(full); a.target = "_blank"; a.rel = "noopener";
     var k = el("a", null, "카카오맵"); k.href = "https://map.kakao.com/link/search/" + encodeURIComponent(full); k.target = "_blank"; k.rel = "noopener";
     f.appendChild(a); f.appendChild(k); return f;
@@ -42,12 +47,13 @@
   }
 
   var cards = {};
+  function setPick(id, on) { rec(id).pick = on ? 1 : 0; paint(id); applyFilter(); persist(id); tabCount(); changed(id); }
   function buildBrokers() {
     var list = $("#brokerList"), cur = "";
     B.forEach(function (b) {
       var id = b[0];
       if (b[5] !== cur) { cur = b[5]; var g = el("div", "grp"); g.dataset.street = cur; g.appendChild(el("span", null, ST[cur])); list.appendChild(g); }
-      var c = el("article", "bk"); c.dataset.id = id; c.dataset.street = b[5];
+      var c = el("article", "bk"); c.dataset.id = id; c.dataset.street = b[5]; c.id = "card-" + id;
       var top = el("div", "bk-top"); top.appendChild(el("h3", null, b[1])); if (b[6]) top.appendChild(el("span", "badge", "먼저 갈 곳")); c.appendChild(top);
       if (b[7]) c.appendChild(el("p", "tags", "올린 매물: " + b[7]));
       var ad = el("p", "row"); ad.appendChild(el("span", "v", b[2])); ad.appendChild(mapLinks(b[3])); c.appendChild(ad);
@@ -58,9 +64,12 @@
       var acts = el("div", "acts");
       [["call", "통화함"], ["visit", "방문함"]].forEach(function (s) {
         var bt = el("button", "tg " + s[0], s[1]); bt.type = "button"; bt.setAttribute("aria-pressed", "false"); bt.dataset.s = s[0];
-        bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; paint(id); progress(); applyFilter(); persist(id); });
+        bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; paint(id); progress(); applyFilter(); persist(id); changed(id); });
         acts.appendChild(bt);
       });
+      var pk = el("button", "tg pick", "동선 담기"); pk.type = "button"; pk.setAttribute("aria-pressed", "false");
+      pk.addEventListener("click", function () { setPick(id, !rec(id).pick); });
+      acts.appendChild(pk);
       c.appendChild(acts);
       var ta = el("textarea"); ta.id = "memo-" + id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 번지, 가격, 들은 얘기"; ta.setAttribute("aria-label", b[1] + " 메모");
       ta.addEventListener("input", function () { rec(id).memo = ta.value; later(id); });
@@ -81,7 +90,7 @@
       c.appendChild(el("p", "who", x.who));
       if (x.caution) c.appendChild(el("p", "caution", x.caution));
       if (x.bunji) {
-        var lb = el("label", "fld", "받아온 번지"); var inp = el("input"); inp.type = "text"; inp.id = "bunji-" + x.id; inp.placeholder = "예: 창신동 123-45"; inp.autocomplete = "off"; inp.maxLength = 100;
+        var lb = el("label", "fld", "받아온 번지"); var inp = el("input"); inp.type = "text"; inp.id = "bunji-" + x.id; inp.placeholder = AREA.bunjiHint || ""; inp.autocomplete = "off"; inp.maxLength = 100;
         inp.addEventListener("input", function () { rec(x.id).bunji = inp.value; later(x.id); }); lb.appendChild(inp); c.appendChild(lb);
       }
       var ta = el("textarea"); ta.id = "memo-" + x.id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 본 느낌, 깎을 수 있는 금액"; ta.setAttribute("aria-label", x.name + " 메모");
@@ -89,6 +98,23 @@
       c.appendChild(ta);
       list.appendChild(c); cards[x.id] = c;
     });
+  }
+  function buildZones() {
+    var list = $("#zoneList");
+    (AREA.zones || []).forEach(function (z) {
+      var c = el("article", "lt zone");
+      var h = el("div", "lt-head"); h.appendChild(el("h3", null, z.name)); h.appendChild(el("span", "zchip", z.kind)); c.appendChild(h);
+      c.appendChild(el("p", "stage", z.stage));
+      if (z.facts && z.facts.length) { var ul = el("ul", "facts"); z.facts.forEach(function (f) { ul.appendChild(el("li", null, f)); }); c.appendChild(ul); }
+      if (z.note) c.appendChild(el("p", "who", z.note));
+      list.appendChild(c);
+    });
+    if (L.length) $("#listings").insertBefore($("#listBlk"), $("#zoneBlk")); // 정리한 매물이 있으면 매물을 먼저 보여줘요
+    $("#zoneHint").textContent = AREA.zoneHint || "";
+    $("#listHint").textContent = AREA.listHint || "";
+    (AREA.ask || []).forEach(function (q) { $("#askList").appendChild(el("li", null, q)); });
+    if (AREA.excluded && AREA.excluded.length) { $("#excludedBox").hidden = false; AREA.excluded.forEach(function (x) { $("#excludedList").appendChild(el("li", null, x)); }); }
+    $("#foot").textContent = AREA.foot || "";
   }
   function when(iso) {
     var d = new Date(iso); if (isNaN(d)) return "";
@@ -98,78 +124,120 @@
   function paint(id) {
     var c = cards[id]; if (!c) return; var r = store[id] || {};
     c.dataset.status = r.status || "";
-    c.querySelectorAll(".tg").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.s === r.status)); });
+    c.querySelectorAll(".tg[data-s]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.s === r.status)); });
+    var pk = c.querySelector(".tg.pick"); if (pk) { pk.setAttribute("aria-pressed", String(!!r.pick)); pk.textContent = r.pick ? "동선에 담음" : "동선 담기"; }
     var ta = $("#memo-" + id); if (ta && document.activeElement !== ta && ta.value !== (r.memo || "")) ta.value = r.memo || "";
     var bj = $("#bunji-" + id); if (bj && document.activeElement !== bj && bj.value !== (r.bunji || "")) bj.value = r.bunji || "";
   }
-  function paintAll() { Object.keys(cards).forEach(paint); progress(); applyFilter(); }
+  function paintAll() { Object.keys(cards).forEach(paint); progress(); applyFilter(); tabCount(); }
+  function counts(list) {
+    var v = 0, c = 0; list.forEach(function (b) { var s = (store[b[0]] || {}).status; if (s === "visit") v++; else if (s === "call") c++; });
+    return { v: v, c: c };
+  }
   function progress() {
-    var v = 0, c = 0; B.forEach(function (b) { var s = (store[b[0]] || {}).status; if (s === "visit") v++; else if (s === "call") c++; });
-    var p = $("#progress"); p.textContent = "";
-    p.appendChild(document.createTextNode("중개업소 " + B.length + "곳 중 방문 ")); p.appendChild(el("b", null, String(v)));
-    p.appendChild(document.createTextNode(" · 통화 ")); p.appendChild(el("b", null, String(c)));
-    p.appendChild(document.createTextNode(" · 남은 곳 ")); p.appendChild(el("b", null, String(B.length - v - c)));
+    var k = counts(B), p = $("#progress"); p.textContent = "";
+    p.appendChild(document.createTextNode("중개업소 " + B.length + "곳 중 방문 ")); p.appendChild(el("b", null, String(k.v)));
+    p.appendChild(document.createTextNode(" · 통화 ")); p.appendChild(el("b", null, String(k.c)));
+    p.appendChild(document.createTextNode(" · 남은 곳 ")); p.appendChild(el("b", null, String(B.length - k.v - k.c)));
+  }
+  function picks() { return B.filter(function (b) { return (store[b[0]] || {}).pick; }); }
+  function tabCount() { var n = picks().length; $("#tab-route").textContent = n ? "동선 " + n : "동선"; }
+  function visible(b) {
+    var id = b[0], r = store[id] || {}, RV = window.CS_REVIEWS;
+    if (street && b[5] !== street) return false;
+    if (filter === "first" && !b[6]) return false;
+    if (filter === "todo" && r.status) return false;
+    if (filter === "pick" && !r.pick) return false;
+    if (filter === "memo" && !(r.memo || "").trim()) return false;
+    if (filter === "review" && !(RV && RV.count(id))) return false;
+    if (filter === "fake" && !(RV && RV.fakes(id))) return false;
+    return true;
   }
   function applyFilter() {
+    if (!AREA) return;
     var shown = 0, per = {};
-    B.forEach(function (b) {
-      var id = b[0], r = store[id] || {}, ok = true;
-      if (street && b[5] !== street) ok = false;
-      if (filter === "first" && !b[6]) ok = false;
-      if (filter === "todo" && r.status) ok = false;
-      if (filter === "memo" && !(r.memo || "").trim()) ok = false;
-      var RV = window.CS_REVIEWS;
-      if (filter === "review" && !(RV && RV.count(id))) ok = false;
-      if (filter === "fake" && !(RV && RV.fakes(id))) ok = false;
-      cards[id].hidden = !ok; if (ok) { shown++; per[b[5]] = 1; }
-    });
+    B.forEach(function (b) { var ok = visible(b); cards[b[0]].hidden = !ok; if (ok) { shown++; per[b[5]] = 1; } });
     document.querySelectorAll("#brokerList .grp").forEach(function (g) { g.hidden = !per[g.dataset.street]; });
     $("#emptyB").hidden = shown > 0;
+    changed("");
   }
 
   // 이름
-  var dlg = $("#nameDlg"), nameBtn = $("#nameBtn");
+  var dlg = $("#nameDlg"), nameBtn = $("#nameBtn"), nameWaiters = [];
   function showName() { nameBtn.textContent = me ? "리뷰 이름: " + me : "리뷰에 쓸 이름 정하기"; }
+  function closeName() { if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
   function openName() { $("#nameInput").value = me; if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", ""); }
   nameBtn.addEventListener("click", openName);
-  $("#nameCancel").addEventListener("click", function () { dlg.close ? dlg.close() : dlg.removeAttribute("open"); });
+  $("#nameCancel").addEventListener("click", closeName);
   $("#nameForm").addEventListener("submit", function (e) {
     e.preventDefault();
     me = $("#nameInput").value.trim().slice(0, 20);
     try { localStorage.setItem("cs-name", me); } catch (err) {}
-    showName(); dlg.close ? dlg.close() : dlg.removeAttribute("open");
+    showName(); closeName();
     nameWaiters.splice(0).forEach(function (f) { f(me); });
   });
-  var nameWaiters = [];
   dlg.addEventListener("close", function () { nameWaiters.length = 0; }); // 이름 창을 그냥 닫으면 대기 중인 저장은 취소
-  // 리뷰(reviews.js)가 쓰는 연결 고리
+
+  // 길 묶음 고르기 (약도의 동그라미와 길 버튼이 같이 움직여요)
+  function setStreet(s, scroll) {
+    street = (street === s) ? "" : s;
+    document.querySelectorAll(".cl, #streets .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.street === street)); });
+    applyFilter();
+    if (street && scroll) { var first = document.querySelector('#brokerList .grp[data-street="' + street + '"]'); if (first && first.scrollIntoView) first.scrollIntoView({ block: "start", behavior: "smooth" }); }
+  }
+  function buildStreets() {
+    var box = $("#streets"), n = {}; B.forEach(function (b) { n[b[5]] = (n[b[5]] || 0) + 1; });
+    Object.keys(ST).forEach(function (k) {
+      var ch = el("button", "chip", ST[k].split(" · ")[0] + " " + (n[k] || 0)); ch.type = "button"; ch.dataset.street = k; ch.setAttribute("aria-pressed", "false"); ch.title = ST[k];
+      ch.addEventListener("click", function () { setStreet(k, false); }); box.appendChild(ch);
+    });
+  }
+
+  var TABS = ["brokers", "listings", "route"], tab = "brokers";
+  function showTab(name) {
+    if (TABS.indexOf(name) < 0) name = "brokers";
+    tab = name;
+    TABS.forEach(function (n) { $("#" + n).hidden = n !== name; $("#tab-" + n).setAttribute("aria-selected", String(n === name)); });
+    try { localStorage.setItem("cs-tab-" + areaId, name); } catch (e) {}
+    changed("tab:" + name);
+  }
+
+  // 구역 목록 (첫 화면)
+  function buildHome() {
+    var list = $("#areaList");
+    AREAS.order.forEach(function (id) {
+      var a = AREAS[id]; if (!a || !a.data) return;
+      var k = counts(a.data.B), pk = a.data.B.filter(function (b) { return (store[b[0]] || {}).pick; }).length;
+      var c = el("a", "area"); c.href = "./?area=" + id;
+      var h = el("div", "area-head"); h.appendChild(el("span", "area-name", a.name)); h.appendChild(el("span", "area-go", "보기 ›")); c.appendChild(h);
+      c.appendChild(el("p", "who", a.sub));
+      var ul = el("ul", "facts");
+      ul.appendChild(el("li", null, "중개업소 " + a.data.B.length + "곳"));
+      ul.appendChild(el("li", null, "구역 " + (a.zones || []).length + "개"));
+      if ((a.data.L || []).length) ul.appendChild(el("li", null, "후보 매물 " + a.data.L.length + "건"));
+      c.appendChild(ul);
+      if (k.v || k.c || pk) c.appendChild(el("p", "by", "내 기록: 방문 " + k.v + " · 통화 " + k.c + (pk ? " · 동선 " + pk : "")));
+      list.appendChild(c);
+    });
+  }
+
+  // 리뷰(reviews.js)·지도(map.js)·동선(route.js)이 쓰는 연결 고리
   window.CS_APP = {
-    B: B, cards: cards, el: el, when: when,
+    area: AREA, B: B, cards: cards, el: el, when: when, $: $,
     name: function () { return me; },
     needName: function (then) { if (me) { then(me); return; } nameWaiters.push(then); openName(); },
-    refilter: function () { applyFilter(); }
+    refilter: function () { applyFilter(); },
+    visible: visible, picks: picks, setPick: setPick,
+    status: function (id) { return (store[id] || {}).status || ""; },
+    tab: function () { return tab; },
+    onChange: function (f) { listeners.push(f); },
+    goCard: function (id) {
+      if (tab !== "brokers") showTab("brokers");
+      var c = cards[id]; if (!c) return;
+      if (c.hidden) { filter = "all"; street = ""; document.querySelectorAll("#filters .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.f === "all")); }); document.querySelectorAll(".cl, #streets .chip").forEach(function (o) { o.setAttribute("aria-pressed", "false"); }); applyFilter(); }
+      c.scrollIntoView({ block: "center", behavior: "smooth" }); c.classList.add("flash"); setTimeout(function () { c.classList.remove("flash"); }, 1600);
+    }
   };
-
-  // 걸러 보기, 약도, 탭
-  document.querySelectorAll("#filters .chip").forEach(function (ch) {
-    ch.addEventListener("click", function () { filter = ch.dataset.f; document.querySelectorAll("#filters .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o === ch)); }); applyFilter(); });
-  });
-  document.querySelectorAll(".cl").forEach(function (g) {
-    var go = function () {
-      street = (street === g.dataset.street) ? "" : g.dataset.street;
-      document.querySelectorAll(".cl").forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.street === street)); });
-      applyFilter();
-      if (street) { var first = document.querySelector('#brokerList .grp[data-street="' + street + '"]'); if (first && first.scrollIntoView) first.scrollIntoView({ block: "start", behavior: "smooth" }); }
-    };
-    g.addEventListener("click", go);
-    g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
-  });
-  function showTab(name) {
-    ["brokers", "listings"].forEach(function (n) { $("#" + n).hidden = n !== name; $("#tab-" + n).setAttribute("aria-selected", String(n === name)); });
-    try { localStorage.setItem("changsin-tab", name); } catch (e) {}
-  }
-  $("#tab-brokers").addEventListener("click", function () { showTab("brokers"); });
-  $("#tab-listings").addEventListener("click", function () { showTab("listings"); });
 
   // 설치
   var deferred = null, installBtn = $("#installBtn");
@@ -180,7 +248,29 @@
   if ("serviceWorker" in navigator) window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); });
 
   // 시작
-  buildBrokers(); buildListings(); loadLocal(); paintAll(); showName();
-  try { var t = location.hash === "#listings" ? "listings" : localStorage.getItem("changsin-tab"); if (t === "listings") showTab("listings"); } catch (e) {}
+  loadLocal(); showName();
+  if (!AREA) {
+    $("#home").hidden = false; buildHome();
+    $("#progress").textContent = "재개발·재건축 구역별 중개업소와 리뷰";
+    setSave("", "");
+    return;
+  }
+  document.title = AREA.name + " 임장 수첩"; $("#title").textContent = AREA.name + " 임장 수첩";
+  $("#homeLink").hidden = false; $("#tabs").hidden = false;
+  if (AREA.svgMap) $("#svgMap").hidden = false; else $("#streets").hidden = false;
+  if (!B.some(function (b) { return b[6]; })) { var fc = $('#filters .chip[data-f="first"]'); if (fc) fc.hidden = true; }
+  buildBrokers(); buildListings(); buildZones(); buildStreets(); paintAll();
+
+  document.querySelectorAll("#filters .chip").forEach(function (ch) {
+    ch.addEventListener("click", function () { filter = ch.dataset.f; document.querySelectorAll("#filters .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o === ch)); }); applyFilter(); });
+  });
+  document.querySelectorAll(".cl").forEach(function (g) {
+    g.addEventListener("click", function () { setStreet(g.dataset.street, true); });
+    g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStreet(g.dataset.street, true); } });
+  });
+  TABS.forEach(function (n) { $("#tab-" + n).addEventListener("click", function () { showTab(n); }); });
+  var t0 = "brokers";
+  try { t0 = location.hash ? location.hash.slice(1) : (localStorage.getItem("cs-tab-" + areaId) || (areaId === "changsin" ? localStorage.getItem("changsin-tab") : "") || "brokers"); } catch (e) {}
+  showTab(t0);
   setSave("", "메모는 이 기기에만 저장");
 })();
