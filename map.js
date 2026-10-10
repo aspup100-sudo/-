@@ -86,8 +86,10 @@
       btn.hidden = drawing; btn.textContent = active ? "영역 해제" : "영역으로 고르기";
       undo.hidden = ok.hidden = cancel.hidden = !drawing; ok.disabled = pts.length < 2; undo.disabled = !pts.length;
       box.classList.toggle("drawing", drawing);
+      // 그리는 동안에는 점(과 카카오가 씌운 겉상자)이 클릭을 가로채지 않게 해서, 점 위를 눌러도 꼭짓점이 찍히게 해요.
+      Object.keys(dots).forEach(function (id) { var w = dots[id].el.parentNode; if (w && w.style) w.style.pointerEvents = drawing ? "none" : ""; });
       if (drawing) msg.textContent = pts.length < 2 ? "지도를 눌러 꼭짓점을 찍으세요. 2곳이면 네모, 3곳부터는 찍은 모양이에요." : (pts.length === 2 ? "네모로 잡혔어요. 더 찍으면 모양이 바뀌어요." : pts.length + "곳을 이은 모양이에요.");
-      else if (active) msg.textContent = "영역 안 " + A.B.filter(function (b) { return A.visible(b); }).length + "곳만 보는 중";
+      else if (active) { var n = A.B.filter(function (b) { return A.visible(b); }).length; msg.textContent = n ? "영역 안 " + n + "곳만 보는 중" : "영역 안에 보이는 중개업소가 없어요. 영역을 해제하고 다시 그려보세요."; }
       else msg.textContent = "";
     }
     function off() { active = false; drawing = false; pts = []; clearShape(); ui(); }
@@ -117,6 +119,7 @@
     if (!map) {
       box.hidden = false; $("#svgMap").hidden = true; $("#streets").hidden = false;
       map = new kakao.maps.Map($("#kmap"), { center: new kakao.maps.LatLng(37.5665, 126.978), level: 5 });
+      try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {}
     }
     var bounds = new kakao.maps.LatLngBounds(), sig = [], shown = 0;
     var picked = {}; A.picks().forEach(function (x) { picked[x[0]] = 1; });
