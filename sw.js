@@ -1,5 +1,5 @@
 // 오프라인에서도 열리게 하는 서비스 워커. 온라인이면 항상 최신 파일을 받고, 끊기면 저장해 둔 파일을 써요.
-const CACHE = "changsin-v5";
+const CACHE = "changsin-v6";
 const SHELL = ["./", "./index.html", "./styles.css", "./data.js", "./data-guui.js", "./areas.js", "./app.js", "./reviews.js", "./map.js", "./route.js", "./sync.js", "./config.js",
   "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 self.addEventListener("install", e => {

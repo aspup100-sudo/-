@@ -239,6 +239,15 @@
     }
   };
 
+  // 맨 위로: 조금 내려가면 오른쪽 아래에 나타나요
+  var toTop = $("#toTop"), ticking = false;
+  function topBtn() { ticking = false; toTop.hidden = (window.pageYOffset || document.documentElement.scrollTop) < 500; }
+  window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(topBtn); } }, { passive: true });
+  toTop.addEventListener("click", function () {
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: calm ? "auto" : "smooth" });
+  });
+
   // 설치
   var deferred = null, installBtn = $("#installBtn");
   window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; installBtn.hidden = false; });
