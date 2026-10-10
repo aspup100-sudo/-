@@ -7,6 +7,7 @@
   var AREA = AREAS[areaId] && AREAS[areaId].data ? AREAS[areaId] : null;
   var D = AREA ? AREA.data : { ST: {}, B: [], L: [] }, ST = D.ST, B = D.B, L = D.L || [];
   var store = {}, timers = {}, filter = "all", street = "";
+  var regionFn = null, regionOff = []; // 지도에서 그린 영역 (map.js가 넣어 줘요)
   var me = "";
   try { me = localStorage.getItem("cs-name") || ""; } catch (e) {}
 
@@ -144,6 +145,7 @@
   function tabCount() { var n = picks().length; $("#tab-route").textContent = n ? "동선 " + n : "동선"; }
   function visible(b) {
     var id = b[0], r = store[id] || {}, RV = window.CS_REVIEWS;
+    if (regionFn && !regionFn(id)) return false;
     if (street && b[5] !== street) return false;
     if (filter === "first" && !b[6]) return false;
     if (filter === "todo" && r.status) return false;
@@ -228,13 +230,15 @@
     needName: function (then) { if (me) { then(me); return; } nameWaiters.push(then); openName(); },
     refilter: function () { applyFilter(); },
     visible: visible, picks: picks, setPick: setPick,
+    setRegion: function (fn) { regionFn = fn || null; applyFilter(); },
+    onRegionOff: function (f) { regionOff.push(f); },
     status: function (id) { return (store[id] || {}).status || ""; },
     tab: function () { return tab; },
     onChange: function (f) { listeners.push(f); },
     goCard: function (id) {
       if (tab !== "brokers") showTab("brokers");
       var c = cards[id]; if (!c) return;
-      if (c.hidden) { filter = "all"; street = ""; document.querySelectorAll("#filters .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.f === "all")); }); document.querySelectorAll(".cl, #streets .chip").forEach(function (o) { o.setAttribute("aria-pressed", "false"); }); applyFilter(); }
+      if (c.hidden) { filter = "all"; street = ""; if (regionFn) { regionFn = null; regionOff.forEach(function (f) { f(); }); } document.querySelectorAll("#filters .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.f === "all")); }); document.querySelectorAll(".cl, #streets .chip").forEach(function (o) { o.setAttribute("aria-pressed", "false"); }); applyFilter(); }
       c.scrollIntoView({ block: "center", behavior: "smooth" }); c.classList.add("flash"); setTimeout(function () { c.classList.remove("flash"); }, 1600);
     }
   };

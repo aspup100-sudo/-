@@ -186,3 +186,10 @@ select{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);borde
 /* 카카오 지도 타일은 전역 img{max-width:100%}에 걸리면 폭이 0이 돼서 안 보여요 */
 .kmap img{max-width:none!important}
 .totop{position:fixed;right:max(16px,calc(50vw - 264px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;font:inherit;font-size:14px;font-weight:600;padding:10px 14px;border-radius:999px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.rg-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 6px 2px}
+.rg-bar .hint{font-size:12px;flex:1 1 160px}
+.mini.strong{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+.mini:disabled{opacity:.45;cursor:default}
+.kmap.drawing{cursor:crosshair;outline:2px solid var(--first);outline-offset:-2px}
+.kmap.drawing .dot{pointer-events:none;opacity:.55}
+.vx{display:block;width:10px;height:10px;background:#B4541A;border:2px solid #fff;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.3);pointer-events:none}

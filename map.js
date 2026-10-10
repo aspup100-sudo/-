@@ -58,6 +58,60 @@
   }
 
   var map = null, dots = {}, lastSig = "";
+
+  // 영역으로 고르기: 지도를 눌러 꼭짓점을 찍으면 그 안의 중개업소만 목록에 남아요. 2곳이면 네모, 3곳부터는 찍은 모양.
+  var wired = false, drawing = false, pts = [], shape = null, marks = [], active = false;
+  function pathOf(p) { return p.length === 2 ? [[p[0][0], p[0][1]], [p[0][0], p[1][1]], [p[1][0], p[1][1]], [p[1][0], p[0][1]]] : p; }
+  function inside(pt, poly) {
+    var c = false;
+    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      var a = poly[i], b = poly[j];
+      if ((a[0] > pt[0]) !== (b[0] > pt[0]) && pt[1] < (b[1] - a[1]) * (pt[0] - a[0]) / (b[0] - a[0]) + a[1]) c = !c;
+    }
+    return c;
+  }
+  window.CS_MAP.inside = inside; window.CS_MAP.pathOf = pathOf;
+  function wireRegion(kakao) {
+    var btn = $("#regionBtn"), undo = $("#regionUndo"), ok = $("#regionOk"), cancel = $("#regionCancel"), msg = $("#regionMsg"), box = $("#kmap");
+    function clearShape() { if (shape) { shape.setMap(null); shape = null; } marks.forEach(function (m) { m.setMap(null); }); marks = []; }
+    function paintShape() {
+      clearShape();
+      pts.forEach(function (p) { var v = document.createElement("span"); v.className = "vx"; var o = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(p[0], p[1]), content: v, xAnchor: 0.5, yAnchor: 0.5 }); o.setMap(map); marks.push(o); });
+      if (pts.length >= 2) {
+        shape = new kakao.maps.Polygon({ path: pathOf(pts).map(function (p) { return new kakao.maps.LatLng(p[0], p[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.9, fillColor: "#B4541A", fillOpacity: 0.12 });
+        shape.setMap(map);
+      }
+    }
+    function ui() {
+      btn.hidden = drawing; btn.textContent = active ? "영역 해제" : "영역으로 고르기";
+      undo.hidden = ok.hidden = cancel.hidden = !drawing; ok.disabled = pts.length < 2; undo.disabled = !pts.length;
+      box.classList.toggle("drawing", drawing);
+      if (drawing) msg.textContent = pts.length < 2 ? "지도를 눌러 꼭짓점을 찍으세요. 2곳이면 네모, 3곳부터는 찍은 모양이에요." : (pts.length === 2 ? "네모로 잡혔어요. 더 찍으면 모양이 바뀌어요." : pts.length + "곳을 이은 모양이에요.");
+      else if (active) msg.textContent = "영역 안 " + A.B.filter(function (b) { return A.visible(b); }).length + "곳만 보는 중";
+      else msg.textContent = "";
+    }
+    function off() { active = false; drawing = false; pts = []; clearShape(); ui(); }
+    kakao.maps.event.addListener(map, "click", function (e) {
+      if (!drawing) return;
+      pts.push([e.latLng.getLat(), e.latLng.getLng()]); paintShape(); ui();
+    });
+    btn.addEventListener("click", function () {
+      if (active) { off(); A.setRegion(null); return; }
+      drawing = true; pts = []; ui();
+    });
+    undo.addEventListener("click", function () { pts.pop(); paintShape(); ui(); });
+    cancel.addEventListener("click", off);
+    ok.addEventListener("click", function () {
+      if (pts.length < 2) return;
+      var poly = pathOf(pts); drawing = false; active = true;
+      marks.forEach(function (m) { m.setMap(null); }); marks = [];
+      A.setRegion(function (id) { var ll = cache.p[id]; return !!ll && inside(ll, poly); });
+      ui();
+    });
+    A.onRegionOff(off);
+    A.onChange(function (what) { if (what === "" && active && !drawing) ui(); });
+    ui();
+  }
   function draw(kakao) {
     var box = $("#kmapBox");
     if (!map) {
@@ -81,7 +135,8 @@
       if (vis) { bounds.extend(d.ov.getPosition()); sig.push(id); shown++; }
     });
     var s = sig.join(",");
-    if (shown && s !== lastSig) { lastSig = s; map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); }
+    if (shown && s !== lastSig && !drawing) { lastSig = s; map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); }
+    if (!wired) { wired = true; wireRegion(kakao); }
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
     $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : ""));
   }

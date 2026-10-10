@@ -47,6 +47,13 @@
     <div class="map" id="kmapBox" hidden>
       <div class="map-head"><h2>지도</h2><span id="kmapNote">점을 누르면 그 중개업소로 가요</span></div>
       <div class="kmap" id="kmap"></div>
+      <div class="rg-bar" id="regionBar">
+        <button class="mini" id="regionBtn" type="button">영역으로 고르기</button>
+        <button class="mini" id="regionUndo" type="button" hidden>하나 지우기</button>
+        <button class="mini strong" id="regionOk" type="button" hidden>완료</button>
+        <button class="mini" id="regionCancel" type="button" hidden>취소</button>
+        <span class="hint" id="regionMsg" role="status"></span>
+      </div>
     </div>
     <div class="map" id="svgMap" hidden>
       <div class="map-head"><h2>약도</h2><span>길을 누르면 그 길의 중개업소만 보여요 · 축척 아님</span></div>
