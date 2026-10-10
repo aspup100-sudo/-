@@ -113,25 +113,58 @@
 })();
 
 
-// ---- DEALS_FULL ----
-// 처음 한 번만(사용자가 다운로드 폴더 저장을 허락함, 2026-10-10). 실행 위치: http://openapi.seoul.go.kr:8088/<인증키>/json/tbLnOpendataRtmsV/1/1/
-// 2024년부터 접수된 서울 부동산 실거래를 모두 받아, 줄마다 값만 담은 deals-full-날짜.json 하나를 다운로드 폴더에 저장해요.
-// 그 파일은 tools/build-deals.py 로 data/deals/*.json 을 만드는 데 써요.
-// 시간이 모자라 info.more가 true면 같은 조각을 다시 실행해요(받은 것은 브라우저가 기억해요). 다 받으면 info.saved에 파일 이름이 나와요.
+// ---- DEALS_DIFF ----
+// 실행 위치: http://openapi.seoul.go.kr:8088/<인증키>/json/tbLnOpendataRtmsV/1/1/  (서울 열린데이터광장 "서울시 부동산 실거래가 정보")
+// 올해 접수된 서울 실거래를 받아(1~2월에는 작년 것도), 올라가 있는 data/deals/*.json과 비교해 새 거래와 취소된 거래만 돌려줘요.
+// 시간이 모자라 info.more가 true면 같은 조각을 다시 실행해요. 새 거래가 많으면 400건씩 나눠 주니, info.left가 0보다 크면 다시 실행해서 다음 묶음을 받아요.
+// 결과의 info.suspicious나 info.tooBig이 true면 반영하지 마세요. envelope는 묶음마다 deals-1.json, deals-2.json … 에 글자 그대로 옮겨 적어요.
 (async () => {
-  const K = location.pathname.split("/")[1], t0 = Date.now(), FROM = 2024, NOW = new Date().getFullYear();
-  window.__deal = window.__deal || {}; window.__dealTot = window.__dealTot || {};
-  const get = async (y, s) => { const r = await fetch("/" + K + "/json/tbLnOpendataRtmsV/" + s + "/" + (s + 999) + "/" + y); const j = await r.json(); const b = j.tbLnOpendataRtmsV; if (!b) throw new Error("응답이 이상해요: " + JSON.stringify(j).slice(0, 150)); window.__dealTot[y] = b.list_total_count; return b.row || []; };
-  for (let y = FROM; y <= NOW && Date.now() - t0 < 40000; y++) {
-    if (!window.__dealTot[y]) window.__deal[y + ":1"] = await get(y, 1);
-    const starts = []; for (let s = 1001; s <= window.__dealTot[y]; s += 1000) if (!window.__deal[y + ":" + s]) starts.push(s);
-    for (let i = 0; i < starts.length && Date.now() - t0 < 40000; i += 8) { const part = starts.slice(i, i + 8); const res = await Promise.all(part.map(s => get(y, s))); part.forEach((s, k) => { window.__deal[y + ":" + s] = res[k]; }); }
+  const K = location.pathname.split("/")[1], t0 = Date.now(), base = "https://aspup100-sudo.github.io/-/";
+  const kst = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), Y = +kst.slice(0, 4), years = +kst.slice(5, 7) <= 2 ? [Y - 1, Y] : [Y];
+  const S = window.__dd = window.__dd || { pages: {}, tot: {} };
+  const get = async (y, s) => { const r = await fetch("/" + K + "/json/tbLnOpendataRtmsV/" + s + "/" + (s + 999) + "/" + y); const j = await r.json(); const b = j.tbLnOpendataRtmsV; if (!b) throw new Error("응답이 이상해요: " + JSON.stringify(j).slice(0, 150)); S.tot[y] = b.list_total_count; return b.row || []; };
+  if (!S.out) {
+    for (const y of years) {
+      if (Date.now() - t0 > 40000) break;
+      if (!S.tot[y]) S.pages[y + ":1"] = await get(y, 1);
+      const starts = []; for (let s = 1001; s <= S.tot[y]; s += 1000) if (!S.pages[y + ":" + s]) starts.push(s);
+      for (let i = 0; i < starts.length && Date.now() - t0 < 40000; i += 8) { const part = starts.slice(i, i + 8); const res = await Promise.all(part.map(s => get(y, s))); part.forEach((s, k) => { S.pages[y + ":" + s] = res[k]; }); }
+    }
+    let need = 0; years.forEach(y => { need += S.tot[y] ? Math.ceil(S.tot[y] / 1000) : 1; });
+    if (Object.keys(S.pages).length < need) return JSON.stringify({ info: { more: true, pages: Object.keys(S.pages).length, need } });
+    // tools/build-deals.py와 같은 규칙으로 한 줄을 만들어요: [계약일, 용도, 금액(만원), 건물㎡, 토지㎡, 층, 건축년도, 지번, 건물명]
+    const str = v => (v == null ? "" : String(v)).trim(), num = v => parseFloat(str(v).replace(/[^\d.]/g, "")) || 0, r2 = v => Math.round(num(v) * 100) / 100;
+    const conv = r => {
+      const gu = str(r.CGG_CD).slice(0, 5), dn = str(r.STDG_NM), ymd = str(r.CTRT_DAY).replace(/\D/g, "");
+      if (!gu.startsWith("11") || !dn || ymd.length !== 8) return null;
+      const b1 = str(r.MNO).replace(/^0+/, ""), b2 = str(r.SNO).replace(/^0+/, "");
+      let jb = !b1 || (b1 + b2).includes("*") ? "" : b1 + (b2 ? "-" + b2 : ""); if (str(r.LOTNO_SE_NM) === "산" && jb) jb = "산 " + jb;
+      return { gu, gname: str(r.CGG_NM), dn, cancel: !!str(r.RTRCN_DAY), row: [ymd, str(r.BLDG_USG), Math.floor(num(r.THING_AMT)), r2(r.ARCH_AREA), r2(r.LAND_AREA), str(r.FLR), Math.floor(num(r.ARCH_YR)), jb, str(r.BLDG_NM)] };
+    };
+    const all = Object.values(S.pages).flat(), first = all[0] || {};
+    const fields = ["CGG_CD", "CGG_NM", "STDG_NM", "MNO", "SNO", "CTRT_DAY", "THING_AMT", "ARCH_AREA", "FLR", "RTRCN_DAY", "BLDG_USG"];
+    const missing = fields.filter(f => !(f in first));
+    if (missing.length) return JSON.stringify({ info: { suspicious: true, why: "열 이름이 예상과 달라요", missing, fields: Object.keys(first) } });
+    const key = (dn, r) => [dn, r[0], r[2], r[5], r[7], r[8]].join("|");
+    const rows = all.map(conv).filter(Boolean), codes = [...new Set(rows.map(x => x.gu))];
+    const have = {}, gname = {}; let haveN = 0;
+    await Promise.all(codes.map(async c => { const r = await fetch(base + "data/deals/" + c + ".json?t=" + Date.now(), { cache: "no-store" }); const d = r.ok ? await r.json() : { d: {} }; const m = have[c] = new Map(); Object.keys(d.d).forEach(dn => d.d[dn].forEach(o => { m.set(key(dn, o), [dn].concat(o)); haveN++; })); }));
+    // 같은 거래가 취소됐다가 다시 신고되는 일이 많아서, 살아 있는 신고가 하나라도 있으면 취소로 보지 않아요.
+    const live = new Set(rows.filter(x => !x.cancel).map(x => x.gu + "|" + key(x.dn, x.row)));
+    const add = [], del = {}, seen = new Set();
+    rows.forEach(x => { const k = key(x.dn, x.row), gk = x.gu + "|" + k; gname[x.gu] = x.gname;
+      if (seen.has(gk)) return; seen.add(gk);
+      if (x.cancel) { const o = !live.has(gk) && have[x.gu].get(k); if (o) (del[x.gu] = del[x.gu] || []).push(o); return; }
+      if (!have[x.gu].has(k)) add.push({ gu: x.gu, r: [x.dn].concat(x.row) }); });
+    const delN = Object.values(del).reduce((n, v) => n + v.length, 0);
+    S.out = { add, del, gname, i: 0, info: { apiRows: all.length, total: S.tot, appRows: haveN, newDeals: add.length, cancelled: delN, suspicious: haveN < 100000 || all.length < 1000, tooBig: add.length > 6000 || delN > 2000 } };
   }
-  let need = 0; for (let y = FROM; y <= NOW; y++) need += window.__dealTot[y] ? Math.ceil(window.__dealTot[y] / 1000) : 1;
-  if (Object.keys(window.__deal).length < need) return JSON.stringify({ info: { more: true, pages: Object.keys(window.__deal).length, need } });
-  const all = Object.values(window.__deal).flat(), fields = Object.keys(all[0] || {});
-  const out = { from: FROM, got: new Date().toISOString(), total: window.__dealTot, fields, rows: all.map(r => fields.map(f => r[f])) };
-  const name = "deals-full-" + new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10) + ".json";
-  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: "application/json" })); a.download = name; document.body.appendChild(a); a.click();
-  return JSON.stringify({ info: { saved: name, rows: all.length, total: window.__dealTot, fields } });
+  const O = S.out, part = O.add.slice(O.i, O.i + 400), d = { add: {}, del: O.i === 0 ? O.del : {} };
+  part.forEach(x => { const a = d.add[x.gu] = d.add[x.gu] || { gu: O.gname[x.gu], rows: [] }; a.rows.push(x.r); });
+  O.i += part.length;
+  const info = Object.assign({}, O.info, { chunk: Math.ceil(O.i / 400) || 1, left: O.add.length - O.i });
+  if (!part.length && !Object.keys(d.del).length) return JSON.stringify({ info: Object.assign(info, { nothing: true }) });
+  const patch = { date: kst, deals: d }, text = JSON.stringify(patch);
+  let h = 0x811c9dc5; for (const b of new TextEncoder().encode(text)) { h ^= b; h = Math.imul(h, 0x01000193) >>> 0; }
+  return JSON.stringify({ info, envelope: { sum: ("0000000" + h.toString(16)).slice(-8), patch } });
 })();

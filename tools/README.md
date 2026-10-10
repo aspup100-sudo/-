@@ -28,3 +28,7 @@ node tools/apply-update.js seoul.json asks.json
 
 - 중개업소: `browser-snippets.js`의 `CUR`와 `apply-update.js`의 `AREAS`에 구역을 추가하고, 데이터 행 9번째 칸에 등록번호를 넣어요.
 - 매물: `listings.js`의 `areas`에 재개발닷컴 구역 id를 추가해요.
+
+## 실거래 (data/deals/<구코드>.json)
+- 처음 자료: 서울 열린데이터광장 OA-21275 "서울시 부동산 실거래가 정보"의 연도별 CSV(2024~2026 접수분)를 `python3 tools/build-deals.py <CSV …>` 로 만들었어요 (2026-10-10, 계약일 2026-10-08까지).
+- 매일: 브라우저 조각 `DEALS_DIFF` 가 올해 접수분을 받아 새 거래와 취소된 거래만 돌려주고, `node tools/apply-update.js deals-1.json [deals-2.json …]` 로 반영해요.

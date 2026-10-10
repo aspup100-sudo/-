@@ -89,11 +89,13 @@ function won(v) { const e = Math.floor(v / 10000), m = v % 10000; return (e ? e 
 // 실거래: data/deals/<구코드>.json 에 새 거래를 넣고 취소된 거래를 빼요 (브라우저 조각 DEALS_DIFF의 결과)
 function deals(p, date, log) {
   const dir = path.join(ROOT, "data", "deals"); fs.mkdirSync(dir, { recursive: true });
-  const codes = new Set(Object.keys(p.add || {}).concat(Object.keys(p.del || {})));
+  p.add = p.add || {}; p.del = p.del || {};
+  const codes = new Set(Object.keys(p.add).concat(Object.keys(p.del)));
   codes.forEach(code => {
     const file = path.join(dir, code + ".json");
     let d; try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { d = { src: "서울 열린데이터광장 '서울시 부동산 실거래가 정보'", date: "", from: +date.slice(0, 4), gu: (p.add[code] || {}).gu || "", d: {} }; }
-    const key = (dn, r) => [dn].concat(r).join("|");
+    // 넓이 반올림이 파이썬·브라우저에서 조금 달라도 같은 거래로 보게, 동·계약일·금액·층·지번·건물명만 비교해요.
+    const key = (dn, r) => [dn, r[0], r[2], r[5], r[7], r[8]].join("|");
     let nA = 0, nD = 0;
     ((p.add[code] || {}).rows || []).forEach(x => { const dn = x[0], r = x.slice(1); const list = d.d[dn] = d.d[dn] || []; if (!list.some(o => key(dn, o) === key(dn, r))) { list.push(r); nA++; } });
     (p.del[code] || []).forEach(x => { const dn = x[0], k = key(dn, x.slice(1)); const list = d.d[dn] || []; const i = list.findIndex(o => key(dn, o) === k); if (i >= 0) { list.splice(i, 1); nD++; } });
@@ -122,7 +124,11 @@ function open(file) {
 
 if (require.main === module) {
   const files = process.argv.slice(2); if (!files.length) { console.error("사용법: node tools/apply-update.js <patch.json> [patch2.json …]"); process.exit(1); }
-  const patch = {}; files.forEach(f => Object.assign(patch, open(f)));
+  // 실거래는 여러 파일(deals-1.json, deals-2.json …)로 나눠 올 수 있어서 합쳐요.
+  const patch = {}; files.forEach(f => { const p = open(f), d = p.deals; delete p.deals; Object.assign(patch, p);
+    if (d) { const m = patch.deals = patch.deals || { add: {}, del: {} };
+      Object.keys(d.add || {}).forEach(c => { const a = m.add[c] = m.add[c] || { gu: d.add[c].gu, rows: [] }; a.rows = a.rows.concat(d.add[c].rows || []); });
+      Object.keys(d.del || {}).forEach(c => { m.del[c] = (m.del[c] || []).concat(d.del[c]); }); } });
   const date = patch.date, log = [];
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) throw new Error("date가 필요해요 (YYYY-MM-DD)");
   if (patch.seoul) require("./build-seoul.js").applyPatch(patch.seoul, date, log);
@@ -132,6 +138,6 @@ if (require.main === module) {
   // 화면에 보이는 "마지막 확인" 날짜. 같은 날 두 번째 실행이 한쪽만 확인했어도, 앞서 확인한 쪽 표시는 남겨요.
   let prev = {}; try { const w = {}; new Function("window", fs.readFileSync(path.join(ROOT, "updated.js"), "utf8"))(w); prev = w.CS_UPDATED || {}; } catch (e) {}
   const same = prev.date === date;
-  fs.writeFileSync(path.join(ROOT, "updated.js"), `// 자동으로 만들어지는 파일이에요. 마지막으로 등록부와 매물을 다시 확인한 날.\nwindow.CS_UPDATED=${JSON.stringify({ date, brokers: !!(patch.brokers || patch.seoul) || (same && !!prev.brokers), asks: !!patch.asks || (same && !!prev.asks) })};\n`);
+  fs.writeFileSync(path.join(ROOT, "updated.js"), `// 자동으로 만들어지는 파일이에요. 마지막으로 등록부와 매물을 다시 확인한 날.\nwindow.CS_UPDATED=${JSON.stringify({ date, brokers: !!(patch.brokers || patch.seoul) || (same && !!prev.brokers), asks: !!patch.asks || (same && !!prev.asks), deals: !!patch.deals || (same && !!prev.deals) })};\n`);
   console.log(log.length ? log.join("\n") : "바뀐 것 없음");
 }

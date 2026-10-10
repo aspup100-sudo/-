@@ -34,7 +34,7 @@ for p in sys.argv[1:]:
         if col(r, "RTRCN_DAY", "취소일", "해제"): continue
         gu = col(r, "CGG_CD", "자치구코드", "시군구코드"); gname = col(r, "CGG_NM", "자치구명", "시군구명")
         dn = col(r, "STDG_NM", "법정동명"); ymd = re.sub(r"\D", "", col(r, "CTRT_DAY", "계약일"))
-        if not (gu and dn and len(ymd) == 8): continue
+        if not (gu.startswith("11") and dn and len(ymd) == 8): continue
         b1 = re.sub(r"^0+", "", col(r, "MNO", "본번")) or ""; b2 = re.sub(r"^0+", "", col(r, "SNO", "부번")) or ""
         jb = "" if (not b1 or "*" in b1 + b2) else (b1 + ("-" + b2 if b2 else ""))
         if col(r, "LOTNO_SE_NM", "지번구분명") == "산" and jb: jb = "산 " + jb
