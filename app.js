@@ -1,4 +1,4 @@
-// 임장 수첩 — 화면 동작. 구역 목록은 areas.js, 구역별 데이터는 data*.js.
+// 임장 수첩 — 화면 동작. 구역 정보는 areas.js, 중개업소 자료는 data*.js와 data/gu/*.json.
 // 체크·메모·동선 담기는 이 기기(localStorage)에만 저장돼서 나만 봐요. 모두가 보는 건 리뷰(reviews.js)뿐이에요.
 (function () {
   var AREAS = window.CS_AREAS || { order: [] };
@@ -214,21 +214,41 @@
     changed("tab:" + name);
   }
 
-  // 구역 목록 (첫 화면)
-  function buildHome() {
-    var list = $("#areaList");
-    AREAS.order.forEach(function (id) {
-      var a = AREAS[id]; if (!a || !a.data) return;
-      var k = counts(a.data.B), pk = a.data.B.filter(function (b) { return (store[b[0]] || {}).pick; }).length;
-      var c = el("a", "area"); c.href = "./?area=" + id;
-      var h = el("div", "area-head"); h.appendChild(el("span", "area-name", a.name)); h.appendChild(el("span", "area-go", "보기 ›")); c.appendChild(h);
-      c.appendChild(el("p", "who", a.sub));
+  // 최근 본 구역 (이 기기에만 저장). h: 주소, n: 이름, s: 설명, c: 중개업소 수, v·k·p: 내 방문·통화·동선 수
+  var RECENT_MAX = 8;
+  function readRecent() { try { var r = JSON.parse(localStorage.getItem("cs-recent") || "null"); return Array.isArray(r) ? r : null; } catch (e) { return null; } }
+  function writeRecent(r) { try { localStorage.setItem("cs-recent", JSON.stringify(r.slice(0, RECENT_MAX))); } catch (e) {} }
+  function recentOf(a, href) {
+    var k = counts(a.data.B), pk = a.data.B.filter(function (b) { return (store[b[0]] || {}).pick; }).length;
+    return { h: href, n: a.name, s: a.sub, c: a.data.B.length, z: (a.zones || []).length, v: k.v, k: k.c, p: pk, t: new Date().toISOString() };
+  }
+  function hrefOf(a) { return a.dynamic ? "./?gu=" + a.id.slice(1, 6) + "&dong=" + encodeURIComponent(a.id.slice(7)) : "./?area=" + a.id; }
+  function saveRecent() { // 지금 보는 구역을 맨 앞으로
+    if (!AREA) return;
+    var now = recentOf(AREA, hrefOf(AREA)), r = (readRecent() || []).filter(function (x) { return x && x.h !== now.h; });
+    r.unshift(now); writeRecent(r);
+  }
+  function buildRecent() {
+    var r = readRecent();
+    if (!r) { // 처음: 전에 체크나 메모를 남긴 정리된 구역이 있으면 넣어 줘요
+      r = [];
+      AREAS.order.forEach(function (id) {
+        var a = AREAS[id]; if (!a || !a.data) return;
+        if (a.data.B.some(function (b) { var n = store[b[0]]; return n && (n.status || n.memo || n.pick); })) r.push(recentOf(a, hrefOf(a)));
+      });
+      if (r.length) writeRecent(r);
+    }
+    var list = $("#recentList"); list.textContent = ""; $("#recentHint").hidden = r.length > 0;
+    r.forEach(function (x) {
+      if (!x || !x.h || !x.n) return;
+      var c = el("a", "area recent"); c.href = x.h;
+      var h = el("div", "area-head"); h.appendChild(el("span", "area-name", x.n)); h.appendChild(el("span", "area-go", "보기 ›")); c.appendChild(h);
+      if (x.s) c.appendChild(el("p", "who", x.s));
       var ul = el("ul", "facts");
-      ul.appendChild(el("li", null, "중개업소 " + a.data.B.length + "곳"));
-      ul.appendChild(el("li", null, "구역 " + (a.zones || []).length + "개"));
-      if ((a.data.L || []).length) ul.appendChild(el("li", null, "후보 매물 " + a.data.L.length + "건"));
+      ul.appendChild(el("li", null, "중개업소 " + x.c + "곳"));
+      if (x.z) ul.appendChild(el("li", null, "구역 " + x.z + "개"));
       c.appendChild(ul);
-      if (k.v || k.c || pk) c.appendChild(el("p", "by", "내 기록: 방문 " + k.v + " · 통화 " + k.c + (pk ? " · 동선 " + pk : "")));
+      if (x.v || x.k || x.p) c.appendChild(el("p", "by", "내 기록: 방문 " + x.v + " · 통화 " + x.k + (x.p ? " · 동선 " + x.p : "")));
       list.appendChild(c);
     });
   }
@@ -241,7 +261,13 @@
     $("#seoulHint").textContent = "서울시에 등록된 중개업소 " + S.total.toLocaleString("ko-KR") + "곳이에요" + (d.length === 3 ? " (" + (+d[1]) + "월 " + (+d[2]) + "일 기준)" : "") + ". 구를 누르고 동을 고르면 그 동의 중개업소가 지도와 함께 나와요.";
     var chips = $("#guChips"), list = $("#dongList"), search = $("#dongSearch"), cur = "";
     try { cur = localStorage.getItem("cs-gu") || ""; } catch (e) {}
-    function dongLink(g, dn) { var a = el("a", "chip dong", dn[0] + " " + dn[1]); a.href = "./?gu=" + g.code + "&dong=" + encodeURIComponent(dn[0]); return a; }
+    var zoned = {}; AREAS.order.forEach(function (id) { var a = AREAS[id]; if (a && a.data && a.dong) zoned[a.dong] = id; }); // 구역 정보까지 정리한 동
+    function dongLink(g, dn) {
+      var a = el("a", "chip dong", dn[0] + " " + dn[1]), z = zoned[g.code + ":" + dn[0]];
+      a.href = z ? "./?area=" + z : "./?gu=" + g.code + "&dong=" + encodeURIComponent(dn[0]);
+      if (z) { a.classList.add("zoned"); a.title = "재개발 구역 정보와 호가가 있어요"; }
+      return a;
+    }
     function show() {
       var q = search.value.trim(); list.textContent = "";
       chips.querySelectorAll(".chip").forEach(function (c) { c.setAttribute("aria-pressed", String(!q && c.dataset.code === cur)); });
@@ -315,13 +341,16 @@
   // 시작
   loadLocal(); showName();
   if (!AREA) {
-    $("#home").hidden = false; buildHome(); buildSeoul();
+    $("#home").hidden = false; buildSeoul(); buildRecent();
     if (window.CS_BOOT_ERR) { $("#bootErr").hidden = false; $("#bootErr").textContent = window.CS_BOOT_ERR; }
     $("#progress").textContent = "재개발·재건축 구역별 중개업소와 리뷰";
     setSave("", "");
     return;
   }
   document.title = AREA.name + " 임장 수첩"; $("#title").textContent = AREA.name + " 임장 수첩";
+  saveRecent(); // 첫 화면의 "최근 본 구역"에 올려요. 나갈 때 내 기록 수를 다시 적어요.
+  window.addEventListener("pagehide", saveRecent);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) saveRecent(); });
   $("#homeLink").hidden = false; $("#tabs").hidden = false;
   if (AREA.svgMap) $("#svgMap").hidden = false; else $("#streets").hidden = false;
   if (!B.some(function (b) { return b[6]; })) { var fc = $('#filters .chip[data-f="first"]'); if (fc) fc.hidden = true; }

@@ -232,5 +232,10 @@ input[type=email]{font:inherit;font-size:16px;width:100%;border:1px solid var(--
 /* 서울 전체에서 고르기 */
 a.chip{text-decoration:none;display:inline-block}
 a.chip.dong{font-variant-numeric:tabular-nums}
+a.chip.zoned{border-color:var(--accent)}
+a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-weight:500;color:var(--accent)}
+.area.recent{padding:12px}
+.area.recent .area-name{font-size:20px}
+#home .blk+.blk{margin-top:8px}
 #dongList .chips{gap:6px}
 .bk{content-visibility:auto;contain-intrinsic-size:auto 250px}
