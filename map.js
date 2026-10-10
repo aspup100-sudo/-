@@ -190,6 +190,16 @@
       box.hidden = false; $("#svgMap").hidden = true; $("#streets").hidden = false;
       map = new kakao.maps.Map($("#kmap"), { center: new kakao.maps.LatLng(37.5665, 126.978), level: 5 });
       try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {}
+      // 로그인 확인 중처럼 화면이 가려진 채로 지도가 만들어지면 크기가 0이라 엉뚱한 곳(전국)이 보여요.
+      // 지도 칸 크기가 바뀌면 다시 맞추고, 가려져 있다가 처음 보이면 중개업소가 다 보이게 다시 맞춰요.
+      if (window.ResizeObserver) {
+        var el = $("#kmap"), wasZero = !el.offsetWidth;
+        new ResizeObserver(function () {
+          if (!el.offsetWidth) { wasZero = true; return; }
+          map.relayout();
+          if (wasZero) { wasZero = false; lastSig = ""; draw(kakao); }
+        }).observe(el);
+      }
     }
     var bounds = new kakao.maps.LatLngBounds(), sig = [], shown = 0;
     var picked = {}; A.picks().forEach(function (x) { picked[x[0]] = 1; });
@@ -209,7 +219,7 @@
     });
     var s = sig.join(",");
     // 영역을 그리는 중이거나 영역으로 보는 중에는 지도를 다시 맞추지 않아요 (그린 테두리가 그대로 보이게).
-    if (shown && s !== lastSig && !drawing) { lastSig = s; if (!active) { map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); } }
+    if (shown && s !== lastSig && !drawing && $("#kmap").offsetWidth) { lastSig = s; if (!active) { map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); } }
     if (!wired) { wired = true; wireRegion(kakao); drawZones(kakao); }
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
     $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : ""));
