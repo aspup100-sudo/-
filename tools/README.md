@@ -37,3 +37,7 @@ node tools/apply-update.js seoul.json asks.json
 - `.github/workflows/daily.yml` 이 매일 08:51(한국 시간)에 `tools/run-snippet.js` 로 SEOUL_DIFF·DEALS_DIFF 조각을 node에서 돌리고, `apply-update.js` 로 반영해 main에 올려요.
 - 서울 열린데이터광장 인증키는 저장소 Settings > Secrets and variables > Actions 의 `SEOUL_KEY` 에만 넣어요.
 - 재개발닷컴 호가(ASKS_DIFF)는 로그인된 브라우저가 필요해서 여기서는 하지 않아요.
+
+## 구역 경계 자동 확인 (GitHub Actions)
+- `.github/workflows/zones.yml` 이 매주 월요일 OA-22712 파일 목록을 보고(`tools/fetch-zones.py`), 앱 자료보다 새 기준월 파일이 있으면 받아서 `build-zones.py` 로 다시 만들어 올려요.
+- 손으로 넣은 구역(data/zones/extra.json)은 그대로 두니, 새 도심복합 사업지는 계속 손으로 넣어요.
