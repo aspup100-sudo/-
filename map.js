@@ -273,8 +273,77 @@
     // 영역을 그리는 중이거나 영역으로 보는 중에는 지도를 다시 맞추지 않아요 (그린 테두리가 그대로 보이게).
     if (shown && s !== lastSig && !drawing && $("#kmap").offsetWidth) { lastSig = s; if (!active) { map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); } }
     if (!wired) { wired = true; wireRegion(kakao); drawZones(kakao); }
+    drawNb(kakao);
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
-    $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : ""));
+    $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : "")) + (Object.keys(nbDots).length ? " · 흐린 점은 옆 동" : "");
+  }
+
+  // 옆 동 중개업소: 이 동과 맞닿은 동(data/dongmap/neighbors.json)에서, 이 동 중개업소와 같은 길(예: 백제고분로)에 있는 곳만
+  // 흐리게 같이 찍어요. 목록·걸러 보기·동선에는 들어가지 않고, 누르면 이름·전화와 그 동으로 가는 링크가 나와요.
+  var nbRows = [], nbDots = {}, nbTip = null;
+  var myKey = (area.dong || "") || (((area.id || "").match(/^d(\d{5})-(.+)$/) || []).slice(1).join(":"));
+  function roadOf(addr) { return ((addr || "").match(/^(\S+)/) || ["", ""])[1]; }
+  function loadNb() {
+    if (!myKey || !window.fetch) return Promise.resolve();
+    var mine = {}, roads = {};
+    A.B.forEach(function (b) { mine[b[0]] = 1; roads[roadOf(b[2])] = 1; });
+    var get = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw r; return r.json(); }); };
+    return get("./data/dongmap/neighbors.json").then(function (NB) {
+      var list = (NB[myKey] || []).filter(function (k) { return k !== myKey; }), byGu = {};
+      list.forEach(function (k) { var g = k.split(":")[0]; (byGu[g] = byGu[g] || []).push(k.split(":")[1]); });
+      return Promise.all(Object.keys(byGu).map(function (g) {
+        return get("./data/gu/" + g + ".json").then(function (d) {
+          byGu[g].forEach(function (dn) {
+            (d.dongs[dn] || []).forEach(function (r) {
+              if (mine[r[0]] || /^gone:/.test(r[5] || "") || !roads[roadOf(r[3])]) return;
+              nbRows.push({ id: r[0], name: r[2], addr: r[3], tel: r[4], gu: d.gu, code: g, dong: dn });
+            });
+          });
+        }, function () {});
+      }));
+    }, function () {});
+  }
+  function geocodeNb(kakao) {
+    var g = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK, ZERO = kakao.maps.services.Status.ZERO_RESULT;
+    var todo = nbRows.filter(function (x) { return !cache.p[x.id] && !cache.miss[x.id]; }), i = 0, n = 0;
+    return new Promise(function (res) {
+      var live = 0;
+      function next() {
+        if (i >= todo.length) { if (!live) res(); return; }
+        var x = todo[i++]; live++;
+        g.addressSearch(x.gu + " " + x.addr.replace(/\s*\(.*$/, ""), function (r, st) {
+          live--;
+          if (st === OK && r[0]) cache.p[x.id] = [+r[0].y, +r[0].x]; else if (st === ZERO) cache.miss[x.id] = 1;
+          if (++n % 25 === 0) { saveCache(); fire(); }
+          next();
+        });
+      }
+      if (!todo.length) res(); else for (var k = 0; k < 4; k++) next();
+    }).then(saveCache);
+  }
+  function drawNb(kakao) {
+    if (!map || !nbRows.length) return;
+    if (!nbTip) {
+      nbTip = { el: document.createElement("div") }; nbTip.el.className = "ztip";
+      nbTip.ov = new kakao.maps.CustomOverlay({ content: nbTip.el, xAnchor: 0.5, yAnchor: 1.15, zIndex: 4, clickable: true });
+      kakao.maps.event.addListener(map, "click", function () { nbTip.ov.setMap(null); });
+    }
+    nbRows.forEach(function (x) {
+      var ll = cache.p[x.id]; if (!ll || nbDots[x.id]) return;
+      var btn = document.createElement("button"); btn.type = "button"; btn.className = "dot nb"; btn.title = x.name + " (" + x.dong + ")"; btn.setAttribute("aria-label", x.name + ", 옆 동 " + x.dong);
+      var pos = new kakao.maps.LatLng(ll[0], ll[1]);
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation(); if (drawing) return;
+        var t = nbTip.el; t.textContent = "";
+        var b = document.createElement("b"); b.textContent = x.name; t.appendChild(b);
+        var s1 = document.createElement("span"); s1.textContent = "옆 동 " + x.dong + " · " + x.addr; t.appendChild(s1);
+        if (x.tel) { var tel = document.createElement("a"); tel.href = "tel:" + x.tel.replace(/[^\d+]/g, ""); tel.textContent = x.tel; t.appendChild(tel); }
+        var go = document.createElement("a"); go.href = "./?gu=" + x.code + "&dong=" + encodeURIComponent(x.dong); go.textContent = x.dong + " 중개업소 보기 ›"; t.appendChild(go);
+        nbTip.ov.setPosition(pos); nbTip.ov.setMap(map);
+      });
+      var ov = new kakao.maps.CustomOverlay({ position: pos, content: btn, yAnchor: 0.5, xAnchor: 0.5, clickable: true, zIndex: -1 });
+      ov.setMap(map); nbDots[x.id] = ov;
+    });
   }
 
   window.CS_MAP.pickByRegion = function (cb) { // 지도 탭으로 가서 영역을 그리게 하고, 완료하면 안에 있는 중개업소 id들을 cb로 넘겨요
@@ -292,6 +361,7 @@
     redraw();
     A.onChange(redraw);
     geoWaiters.push(redraw);
-    return geocodeAll(kakao).then(function () { geoDone = true; fire(); });
+    return geocodeAll(kakao).then(function () { geoDone = true; fire(); })
+      .then(loadNb).then(function () { return geocodeNb(kakao); }).then(function () { if (map) drawNb(kakao); });
   }).catch(function () { geoDone = true; fire(); });
 })();

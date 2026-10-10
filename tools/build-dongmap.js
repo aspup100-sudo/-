@@ -89,3 +89,25 @@ Object.keys(byGu).sort().forEach(gu => {
   fs.writeFileSync(path.join(OUT, gu + ".json"), JSON.stringify(out));
 });
 console.log("만든 구:", Object.keys(byGu).length);
+
+// 이웃 동: 경계가 맞닿은(40m 안) 동끼리. 동 화면 지도에 옆 동 중개업소를 흐리게 같이 보여 주는 데 써요.
+// 출력: data/dongmap/neighbors.json  { "구코드:동": ["구코드:동", ...] } (다른 구 동도 들어가요)
+const all = [];
+src.features.forEach(f => {
+  const p = f.properties, polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+  const pts = []; polys.forEach(pl => pl[0].forEach(([lo, la]) => pts.push([lo * KX * 111320, la * 110950])));  // 대략 미터
+  const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+  all.push({ key: p.EMD_CD.slice(0, 5) + ":" + p.EMD_KOR_NM, pts, bb: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] });
+});
+const NEAR = 40, nb = {};
+for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+  const a = all[i], b = all[j];
+  if (a.bb[0] > b.bb[2] + NEAR || b.bb[0] > a.bb[2] + NEAR || a.bb[1] > b.bb[3] + NEAR || b.bb[1] > a.bb[3] + NEAR) continue;
+  let hit = false;
+  for (let k = 0; k < a.pts.length && !hit; k += 2) for (let m = 0; m < b.pts.length - 1 && !hit; m++)
+    if (segDist(a.pts[k][0], a.pts[k][1], b.pts[m][0], b.pts[m][1], b.pts[m + 1][0], b.pts[m + 1][1]) < NEAR) hit = true;
+  if (hit && a.key !== b.key) { (nb[a.key] = nb[a.key] || []).push(b.key); (nb[b.key] = nb[b.key] || []).push(a.key); }
+}
+Object.keys(nb).forEach(k => nb[k] = [...new Set(nb[k])].sort());
+fs.writeFileSync(path.join(OUT, "neighbors.json"), JSON.stringify(nb));
+console.log("이웃 동 목록:", Object.keys(nb).length);
