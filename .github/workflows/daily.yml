@@ -1,0 +1,52 @@
+# 매일 갱신 (컴퓨터 없이): 서울 열린데이터광장에서 중개업소 정보와 실거래를 받아 바뀐 것만 반영하고 올려요.
+# 재개발닷컴 호가는 로그인된 브라우저가 필요해서 여기서는 하지 않아요 (Claude 예약 작업 몫).
+# 인증키는 저장소 설정 > Secrets and variables > Actions 의 SEOUL_KEY 에만 넣어요. 파일에 적지 않아요.
+name: 매일 갱신
+on:
+  schedule:
+    - cron: "51 23 * * *"   # 한국 시간 매일 08:51
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: daily-update
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 서울시 자료 받기
+        env:
+          SEOUL_KEY: ${{ secrets.SEOUL_KEY }}
+        run: |
+          test -n "$SEOUL_KEY" || { echo "SEOUL_KEY 비밀값이 없어요"; exit 1; }
+          node tools/run-snippet.js SEOUL_DIFF "$RUNNER_TEMP/p" || echo "FAILED=중개업소" >> "$GITHUB_ENV"
+          node tools/run-snippet.js DEALS_DIFF "$RUNNER_TEMP/p" || echo "FAILED=실거래" >> "$GITHUB_ENV"
+          ls "$RUNNER_TEMP/p" || true
+      - name: 반영하고 확인
+        run: |
+          files=$(ls "$RUNNER_TEMP"/p/*.json 2>/dev/null || true)
+          if [ -z "$files" ]; then echo "받은 것이 없어요 (위 기록 참고)"; exit 0; fi
+          node tools/apply-update.js $files | tee change.log
+          node --check data.js && node --check data-guui.js && node --check listings.js && node --check updated.js
+          node -e "const d=JSON.parse(require('fs').readFileSync('data/gu/index.json','utf8')); if(!(d.total>=20000)) { console.error('total 이상', d.total); process.exit(1) }"
+          bad=$(git status --porcelain | awk '{print $2}' | grep -vE '^(data\.js|data-guui\.js|listings\.js|updated\.js|data/gu/|data/deals/|change\.log)' || true)
+          if [ -n "$bad" ]; then echo "예상 밖 파일: $bad"; exit 1; fi
+      - name: 올리기
+        run: |
+          [ -f change.log ] || exit 0
+          sum=$(grep -c . change.log || true); first=$(head -1 change.log); rm -f change.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data.js data-guui.js listings.js updated.js data/gu data/deals
+          git diff --cached --quiet && exit 0
+          git commit -m "매일 갱신 $(TZ=Asia/Seoul date +%F): ${first:-바뀐 것 없음}$([ "$sum" -gt 1 ] && echo " 외 $((sum-1))줄")"
+          git push
+      - name: 실패 알림
+        if: env.FAILED != ''
+        run: |
+          echo "서울시 자료를 받지 못한 단계가 있어요: $FAILED (위 기록 참고)"
+          exit 1

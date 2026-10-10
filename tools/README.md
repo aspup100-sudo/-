@@ -32,3 +32,8 @@ node tools/apply-update.js seoul.json asks.json
 ## 실거래 (data/deals/<구코드>.json)
 - 처음 자료: 서울 열린데이터광장 OA-21275 "서울시 부동산 실거래가 정보"의 연도별 CSV(2024~2026 접수분)를 `python3 tools/build-deals.py <CSV …>` 로 만들었어요 (2026-10-10, 계약일 2026-10-08까지).
 - 매일: 브라우저 조각 `DEALS_DIFF` 가 올해 접수분을 받아 새 거래와 취소된 거래만 돌려주고, `node tools/apply-update.js deals-1.json [deals-2.json …]` 로 반영해요.
+
+## 컴퓨터 없이 매일 갱신 (GitHub Actions)
+- `.github/workflows/daily.yml` 이 매일 08:51(한국 시간)에 `tools/run-snippet.js` 로 SEOUL_DIFF·DEALS_DIFF 조각을 node에서 돌리고, `apply-update.js` 로 반영해 main에 올려요.
+- 서울 열린데이터광장 인증키는 저장소 Settings > Secrets and variables > Actions 의 `SEOUL_KEY` 에만 넣어요.
+- 재개발닷컴 호가(ASKS_DIFF)는 로그인된 브라우저가 필요해서 여기서는 하지 않아요.
