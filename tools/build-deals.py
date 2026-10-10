@@ -38,7 +38,7 @@ for p in sys.argv[1:]:
         b1 = re.sub(r"^0+", "", col(r, "MNO", "본번")) or ""; b2 = re.sub(r"^0+", "", col(r, "SNO", "부번")) or ""
         jb = "" if (not b1 or "*" in b1 + b2) else (b1 + ("-" + b2 if b2 else ""))
         if col(r, "LOTNO_SE_NM", "지번구분명") == "산" and jb: jb = "산 " + jb
-        fl = col(r, "FLR", "층"); yr = col(r, "ARCH_YR", "건축년도")
+        fl = col(r, "FLR", "층"); fl = "" if fl == "0" else fl; yr = col(r, "ARCH_YR", "건축년도")
         row = [ymd, col(r, "BLDG_USG", "건물용도"), int(num(col(r, "THING_AMT", "물건금액"))), round(num(col(r, "ARCH_AREA", "건물면적")), 2) or 0,
                round(num(col(r, "LAND_AREA", "토지면적", "대지권면적")), 2) or 0, fl, int(num(yr)) if yr else 0, jb, col(r, "BLDG_NM", "건물명")]
         g = by.setdefault(gu[:5], {"gu": gname, "d": {}})

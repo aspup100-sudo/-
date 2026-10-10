@@ -95,7 +95,7 @@ function deals(p, date, log) {
     const file = path.join(dir, code + ".json");
     let d; try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { d = { src: "서울 열린데이터광장 '서울시 부동산 실거래가 정보'", date: "", from: +date.slice(0, 4), gu: (p.add[code] || {}).gu || "", d: {} }; }
     // 넓이 반올림이 파이썬·브라우저에서 조금 달라도 같은 거래로 보게, 동·계약일·금액·층·지번·건물명만 비교해요.
-    const key = (dn, r) => [dn, r[0], r[2], r[5], r[7], r[8]].join("|");
+    const key = (dn, r) => [dn, r[0], r[2], r[5] === "0" ? "" : r[5], r[7], r[8]].join("|"); // 층 0과 빈칸은 같게 봐요
     let nA = 0, nD = 0;
     ((p.add[code] || {}).rows || []).forEach(x => { const dn = x[0], r = x.slice(1); const list = d.d[dn] = d.d[dn] || []; if (!list.some(o => key(dn, o) === key(dn, r))) { list.push(r); nA++; } });
     (p.del[code] || []).forEach(x => { const dn = x[0], k = key(dn, x.slice(1)); const list = d.d[dn] || []; const i = list.findIndex(o => key(dn, o) === k); if (i >= 0) { list.splice(i, 1); nD++; } });

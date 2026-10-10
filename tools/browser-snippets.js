@@ -139,13 +139,13 @@
       if (!gu.startsWith("11") || !dn || ymd.length !== 8) return null;
       const b1 = str(r.MNO).replace(/^0+/, ""), b2 = str(r.SNO).replace(/^0+/, "");
       let jb = !b1 || (b1 + b2).includes("*") ? "" : b1 + (b2 ? "-" + b2 : ""); if (str(r.LOTNO_SE_NM) === "산" && jb) jb = "산 " + jb;
-      return { gu, gname: str(r.CGG_NM), dn, cancel: !!str(r.RTRCN_DAY), row: [ymd, str(r.BLDG_USG), Math.floor(num(r.THING_AMT)), r2(r.ARCH_AREA), r2(r.LAND_AREA), str(r.FLR), Math.floor(num(r.ARCH_YR)), jb, str(r.BLDG_NM)] };
+      return { gu, gname: str(r.CGG_NM), dn, cancel: !!str(r.RTRCN_DAY), row: [ymd, str(r.BLDG_USG), Math.floor(num(r.THING_AMT)), r2(r.ARCH_AREA), r2(r.LAND_AREA), str(r.FLR) === "0" ? "" : str(r.FLR), Math.floor(num(r.ARCH_YR)), jb, str(r.BLDG_NM)] };
     };
     const all = Object.values(S.pages).flat(), first = all[0] || {};
     const fields = ["CGG_CD", "CGG_NM", "STDG_NM", "MNO", "SNO", "CTRT_DAY", "THING_AMT", "ARCH_AREA", "FLR", "RTRCN_DAY", "BLDG_USG"];
     const missing = fields.filter(f => !(f in first));
     if (missing.length) return JSON.stringify({ info: { suspicious: true, why: "열 이름이 예상과 달라요", missing, fields: Object.keys(first) } });
-    const key = (dn, r) => [dn, r[0], r[2], r[5], r[7], r[8]].join("|");
+    const key = (dn, r) => [dn, r[0], r[2], r[5] === "0" ? "" : r[5], r[7], r[8]].join("|"); // 단독·다가구는 층이 CSV엔 빈칸, API엔 0으로 와요
     const rows = all.map(conv).filter(Boolean), codes = [...new Set(rows.map(x => x.gu))];
     const have = {}, gname = {}; let haveN = 0;
     await Promise.all(codes.map(async c => { const r = await fetch(base + "data/deals/" + c + ".json?t=" + Date.now(), { cache: "no-store" }); const d = r.ok ? await r.json() : { d: {} }; const m = have[c] = new Map(); Object.keys(d.d).forEach(dn => d.d[dn].forEach(o => { m.set(key(dn, o), [dn].concat(o)); haveN++; })); }));
