@@ -8,6 +8,8 @@
   var AREA = AREAS[areaId] && AREAS[areaId].data ? AREAS[areaId] : null;
   var D = AREA ? AREA.data : { ST: {}, B: [], L: [] }, ST = D.ST, B = D.B, L = D.L || [];
   var store = {}, timers = {}, filter = "all", street = "";
+  var X = []; // 다른 동 중개업소 (map.js가 넣어 줘요). 지도에 그린 영역 안에 들어오거나 동선에 담은 것만 목록에 나와요.
+  function all() { return X.length ? B.concat(X) : B; }
   var regionFn = null, regionOff = []; // 지도에서 그린 영역 (map.js가 넣어 줘요)
   var me = "";
   try { me = localStorage.getItem("cs-name") || ""; } catch (e) {}
@@ -32,8 +34,8 @@
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flush(); });
   window.addEventListener("pagehide", flush);
 
-  function mapLinks(q) {
-    var full = (AREA ? AREA.gu + " " : "") + q, f = document.createDocumentFragment();
+  function mapLinks(q, gu) {
+    var full = (gu || (AREA ? AREA.gu : "")) + " " + q, f = document.createDocumentFragment();
     var a = el("a", null, "네이버지도"); a.href = "https://map.naver.com/p/search/" + encodeURIComponent(full); a.target = "_blank"; a.rel = "noopener";
     var k = el("a", null, "카카오맵"); k.href = "https://map.kakao.com/link/search/" + encodeURIComponent(full); k.target = "_blank"; k.rel = "noopener";
     f.appendChild(a); f.appendChild(k); return f;
@@ -50,41 +52,53 @@
 
   var cards = {};
   function setPick(id, on) { rec(id).pick = on ? 1 : 0; paint(id); applyFilter(); persist(id); tabCount(); changed(id); }
+  function card(b) {
+    var id = b[0];
+    var c = el("article", "bk"); c.dataset.id = id; c.dataset.street = b[5]; c.id = "card-" + id;
+    var top = el("div", "bk-top"); top.appendChild(el("h3", null, b[1])); if (b[10]) top.appendChild(el("span", "badge nbb", b[10])); if (b[6]) top.appendChild(el("span", "badge", "먼저 갈 곳")); c.appendChild(top);
+    var stt = /^(new|gone):(\d{4})-(\d{2})-(\d{2})$/.exec(b[9] || "");
+    if (stt) { // 매일 등록부를 다시 확인해서 붙이는 표시
+      var md = (+stt[3]) + "/" + (+stt[4]);
+      if (stt[1] === "new") top.appendChild(el("span", "badge fresh", "새로 등록 " + md));
+      else { top.appendChild(el("span", "badge gone", "등록부에서 사라짐 " + md)); c.classList.add("is-gone"); c.appendChild(el("p", "tags", "폐업했거나 다른 곳으로 옮겼을 수 있어요. 가기 전에 전화로 확인하세요.")); }
+    }
+    if (b[7]) c.appendChild(el("p", "tags", "올린 매물: " + b[7]));
+    var ad = el("p", "row"); ad.appendChild(el("span", "v", b[2])); ad.appendChild(mapLinks(b[3], b[11])); c.appendChild(ad);
+    var tl = el("p", "row");
+    if (b[4]) { var n = el("span", "num", b[4]); tl.appendChild(n); tl.appendChild(copyBtn(b[4], n)); var t = el("a", null, "전화 걸기"); t.href = "tel:" + b[4].replace(/-/g, ""); tl.appendChild(t); }
+    else tl.appendChild(el("span", "v", "등록부에 전화번호 없음"));
+    c.appendChild(tl);
+    var acts = el("div", "acts");
+    [["call", "통화함"], ["visit", "방문함"]].forEach(function (s) {
+      var bt = el("button", "tg " + s[0], s[1]); bt.type = "button"; bt.setAttribute("aria-pressed", "false"); bt.dataset.s = s[0];
+      bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; paint(id); progress(); applyFilter(); persist(id); changed(id); });
+      acts.appendChild(bt);
+    });
+    var pk = el("button", "tg pick", "동선 담기"); pk.type = "button"; pk.setAttribute("aria-pressed", "false");
+    pk.addEventListener("click", function () { setPick(id, !rec(id).pick); });
+    acts.appendChild(pk);
+    c.appendChild(acts);
+    var ta = el("textarea"); ta.id = "memo-" + id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 번지, 가격, 들은 얘기"; ta.setAttribute("aria-label", b[1] + " 메모");
+    ta.addEventListener("input", function () { rec(id).memo = ta.value; later(id); });
+    ta.addEventListener("blur", applyFilter);
+    c.appendChild(ta);
+    var rv = el("div", "rv"); rv.id = "rv-" + id; c.appendChild(rv);
+    return c;
+  }
+  // 다른 동 중개업소를 목록 맨 아래 "다른 동" 묶음으로 붙여요 (영역 안에 들어오거나 동선에 담았을 때만 보여요)
+  function addExtra(rows) {
+    if (!AREA || !rows.length) return;
+    var list = $("#brokerList"), end = $("#emptyB");
+    if (!X.length) { var g = el("div", "grp"); g.dataset.street = "옆동"; g.appendChild(el("span", null, "다른 동 · 지도에 그린 영역 안에 들어오거나 동선에 담은 곳")); list.insertBefore(g, end); }
+    rows.forEach(function (b) { if (cards[b[0]]) return; X.push(b); var c = card(b); list.insertBefore(c, end); cards[b[0]] = c; paint(b[0]); });
+    applyFilter(); tabCount();
+  }
   function buildBrokers() {
     var list = $("#brokerList"), cur = "";
     B.forEach(function (b) {
       var id = b[0];
       if (b[5] !== cur) { cur = b[5]; var g = el("div", "grp"); g.dataset.street = cur; g.appendChild(el("span", null, ST[cur])); list.appendChild(g); }
-      var c = el("article", "bk"); c.dataset.id = id; c.dataset.street = b[5]; c.id = "card-" + id;
-      var top = el("div", "bk-top"); top.appendChild(el("h3", null, b[1])); if (b[6]) top.appendChild(el("span", "badge", "먼저 갈 곳")); c.appendChild(top);
-      var stt = /^(new|gone):(\d{4})-(\d{2})-(\d{2})$/.exec(b[9] || "");
-      if (stt) { // 매일 등록부를 다시 확인해서 붙이는 표시
-        var md = (+stt[3]) + "/" + (+stt[4]);
-        if (stt[1] === "new") top.appendChild(el("span", "badge fresh", "새로 등록 " + md));
-        else { top.appendChild(el("span", "badge gone", "등록부에서 사라짐 " + md)); c.classList.add("is-gone"); c.appendChild(el("p", "tags", "폐업했거나 다른 곳으로 옮겼을 수 있어요. 가기 전에 전화로 확인하세요.")); }
-      }
-      if (b[7]) c.appendChild(el("p", "tags", "올린 매물: " + b[7]));
-      var ad = el("p", "row"); ad.appendChild(el("span", "v", b[2])); ad.appendChild(mapLinks(b[3])); c.appendChild(ad);
-      var tl = el("p", "row");
-      if (b[4]) { var n = el("span", "num", b[4]); tl.appendChild(n); tl.appendChild(copyBtn(b[4], n)); var t = el("a", null, "전화 걸기"); t.href = "tel:" + b[4].replace(/-/g, ""); tl.appendChild(t); }
-      else tl.appendChild(el("span", "v", "등록부에 전화번호 없음"));
-      c.appendChild(tl);
-      var acts = el("div", "acts");
-      [["call", "통화함"], ["visit", "방문함"]].forEach(function (s) {
-        var bt = el("button", "tg " + s[0], s[1]); bt.type = "button"; bt.setAttribute("aria-pressed", "false"); bt.dataset.s = s[0];
-        bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; paint(id); progress(); applyFilter(); persist(id); changed(id); });
-        acts.appendChild(bt);
-      });
-      var pk = el("button", "tg pick", "동선 담기"); pk.type = "button"; pk.setAttribute("aria-pressed", "false");
-      pk.addEventListener("click", function () { setPick(id, !rec(id).pick); });
-      acts.appendChild(pk);
-      c.appendChild(acts);
-      var ta = el("textarea"); ta.id = "memo-" + id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 번지, 가격, 들은 얘기"; ta.setAttribute("aria-label", b[1] + " 메모");
-      ta.addEventListener("input", function () { rec(id).memo = ta.value; later(id); });
-      ta.addEventListener("blur", applyFilter);
-      c.appendChild(ta);
-      var rv = el("div", "rv"); rv.id = "rv-" + id; c.appendChild(rv);
-      list.appendChild(c); cards[id] = c;
+      list.appendChild(card(b)); cards[id] = list.lastChild;
     });
     var e = el("p", "empty", "조건에 맞는 중개업소가 없어요."); e.id = "emptyB"; e.hidden = true; list.appendChild(e);
   }
@@ -151,10 +165,11 @@
     p.appendChild(document.createTextNode(" · 통화 ")); p.appendChild(el("b", null, String(k.c)));
     p.appendChild(document.createTextNode(" · 남은 곳 ")); p.appendChild(el("b", null, String(B.length - k.v - k.c)));
   }
-  function picks() { return B.filter(function (b) { return (store[b[0]] || {}).pick; }); }
+  function picks() { return all().filter(function (b) { return (store[b[0]] || {}).pick; }); }
   function tabCount() { var n = picks().length; $("#tab-route").textContent = n ? "동선 " + n : "동선"; }
   function visible(b) {
     var id = b[0], r = store[id] || {}, RV = window.CS_REVIEWS;
+    if (b[10] && !(regionFn && regionFn(id)) && !r.pick) return false; // 다른 동: 영역 안이거나 동선에 담은 것만
     if (regionFn && !regionFn(id)) return false;
     if (street && b[5] !== street) return false;
     if (filter === "first" && !b[6]) return false;
@@ -168,7 +183,7 @@
   function applyFilter() {
     if (!AREA) return;
     var shown = 0, per = {};
-    B.forEach(function (b) { var ok = visible(b); cards[b[0]].hidden = !ok; if (ok) { shown++; per[b[5]] = 1; } });
+    all().forEach(function (b) { var ok = visible(b); cards[b[0]].hidden = !ok; if (ok) { shown++; per[b[5]] = 1; } });
     document.querySelectorAll("#brokerList .grp").forEach(function (g) { g.hidden = !per[g.dataset.street]; });
     $("#emptyB").hidden = shown > 0;
     changed("");
@@ -361,6 +376,7 @@
     setName: function (n) { me = n || ""; },
     refilter: function () { applyFilter(); },
     visible: visible, picks: picks, setPick: setPick,
+    all: all, addExtra: addExtra,
     setPicks: function (ids, on) { // 여러 곳을 한꺼번에 담거나 빼기
       var n = 0; ids.forEach(function (id) { if (!cards[id]) return; var r = rec(id); if (!!r.pick !== !!on) { r.pick = on ? 1 : 0; r.at = new Date().toISOString(); paint(id); n++; } });
       if (n) { saveLocal(); setSave("ok", "내 메모 저장됨"); applyFilter(); tabCount(); changed("picks"); }

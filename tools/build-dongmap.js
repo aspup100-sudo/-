@@ -111,3 +111,15 @@ for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
 Object.keys(nb).forEach(k => nb[k] = [...new Set(nb[k])].sort());
 fs.writeFileSync(path.join(OUT, "neighbors.json"), JSON.stringify(nb));
 console.log("이웃 동 목록:", Object.keys(nb).length);
+
+// 동마다 차지하는 네모 범위(경위도). 지도를 옮기거나 키웠을 때 화면에 걸친 동을 찾아 그 동 중개업소를 흐리게 보여 주는 데 써요.
+// 출력: data/dongmap/bbox.json  { "구코드:동": [서, 남, 동, 북] }
+const bbox = {};
+src.features.forEach(f => {
+  const p = f.properties, polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+  let w = 180, s = 90, e = -180, n = -90;
+  polys.forEach(pl => pl[0].forEach(([lo, la]) => { w = Math.min(w, lo); e = Math.max(e, lo); s = Math.min(s, la); n = Math.max(n, la); }));
+  bbox[p.EMD_CD.slice(0, 5) + ":" + p.EMD_KOR_NM] = [w, s, e, n].map(v => Math.round(v * 1e4) / 1e4);
+});
+fs.writeFileSync(path.join(OUT, "bbox.json"), JSON.stringify(bbox));
+console.log("동 범위:", Object.keys(bbox).length);

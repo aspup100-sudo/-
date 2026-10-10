@@ -163,7 +163,8 @@ a.mini{text-decoration:none;display:inline-block}
 .dot[data-status="call"]{background:#2460A7}
 .dot[data-status="visit"]{background:#0B6E5F}
 .dot[data-pick="1"]{width:13px;height:13px;border-color:#B4541A;border-width:3px}
-.dot.nb{width:7px;height:7px;background:#8A9592;opacity:.55;box-shadow:none}
+.dot.nb{width:8px;height:8px;background:#6E7C78;opacity:.85}
+.ztip .tg.pick{flex:none;align-self:flex-start;margin:3px 0;padding:5px 10px;font-size:12px}
 .ztip a{color:#0B6E5F;font-weight:600}
 .pin{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:#0B6E5F;color:#fff;font:600 13px/1 system-ui,sans-serif;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
 .pin.start{background:#B4541A}

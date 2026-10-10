@@ -129,7 +129,7 @@
     if (open[id]) renderList(id);
     if (f && f._load) f._load();
   }
-  function refreshAll() { A.B.forEach(function (b) { refresh(b[0]); }); A.refilter(); }
+  function refreshAll() { (A.all ? A.all() : A.B).forEach(function (b) { refresh(b[0]); }); A.refilter(); }
 
   rebuildLocal(); refreshAll();
 

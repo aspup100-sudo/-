@@ -201,7 +201,7 @@
       Object.keys(dots).forEach(function (id) { var w = dots[id].el.parentNode; if (w && w.style) w.style.pointerEvents = drawing ? "none" : ""; });
       if (drawing && pendingPick && pts.length >= 2) msg.textContent = "완료를 누르면 이 안의 중개업소가 모두 동선에 담겨요.";
       else if (drawing) msg.textContent = pts.length < 2 ? "지도를 눌러 꼭짓점을 찍으세요. 2곳이면 네모, 3곳부터는 찍은 모양이에요." : (pts.length === 2 ? "네모로 잡혔어요. 더 찍으면 모양이 바뀌어요." : pts.length + "곳을 이은 모양이에요.");
-      else if (active) { var n = A.B.filter(function (b) { return A.visible(b); }).length; msg.textContent = n ? "영역 안 " + n + "곳만 보는 중" : "영역 안에 보이는 중개업소가 없어요. 영역을 해제하고 다시 그려보세요."; }
+      else if (active) { var n = A.all().filter(function (b) { return A.visible(b); }).length; msg.textContent = n ? "영역 안 " + n + "곳만 보는 중" : "영역 안에 보이는 중개업소가 없어요. 영역을 해제하고 다시 그려보세요."; }
       else msg.textContent = "";
     }
     function off() { active = false; drawing = false; pts = []; pendingPick = null; clearShape(); ui(); }
@@ -224,7 +224,7 @@
       if (pts.length < 2) return;
       var poly = pathOf(pts);
       if (pendingPick) { // 걸러 보기 대신, 안에 있는 곳을 돌려주고 끝
-        var cb = pendingPick, ids = A.B.filter(function (b) { var ll = cache.p[b[0]]; return !!ll && inside(ll, poly); }).map(function (b) { return b[0]; });
+        var cb = pendingPick, ids = A.all().filter(function (b) { var ll = cache.p[b[0]]; return !!ll && inside(ll, poly); }).map(function (b) { return b[0]; });
         off(); cb(ids); return;
       }
       drawing = false; active = true;
@@ -242,6 +242,8 @@
       box.hidden = false; $("#svgMap").hidden = true; $("#streets").hidden = false;
       map = new kakao.maps.Map($("#kmap"), { center: new kakao.maps.LatLng(37.5665, 126.978), level: 5 });
       try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {}
+      // 지도를 옮기거나 키우고 멈추면 화면에 걸친 다른 동 중개업소를 불러와요.
+      kakao.maps.event.addListener(map, "idle", function () { clearTimeout(viewTimer); viewTimer = setTimeout(function () { if ($("#kmap").offsetWidth) loadView(kakao); }, 400); });
       // 로그인 확인 중처럼 화면이 가려진 채로 지도가 만들어지면 크기가 0이라 엉뚱한 곳(전국)이 보여요.
       // 지도 칸 크기가 바뀌면 다시 맞추고, 가려져 있다가 처음 보이면 중개업소가 다 보이게 다시 맞춰요.
       if (window.ResizeObserver) {
@@ -275,51 +277,110 @@
     if (!wired) { wired = true; wireRegion(kakao); drawZones(kakao); }
     drawNb(kakao);
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
-    $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : "")) + (Object.keys(nbDots).length ? " · 흐린 점은 옆 동" : "");
+    $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : "")) + (Object.keys(nbDots).length ? " · 흐린 점은 다른 동" : "");
+    viewNote();
   }
 
-  // 옆 동 중개업소: 이 동과 맞닿은 동(data/dongmap/neighbors.json)에서, 이 동 중개업소와 같은 길(예: 백제고분로)에 있는 곳만
-  // 흐리게 같이 찍어요. 목록·걸러 보기·동선에는 들어가지 않고, 누르면 이름·전화와 그 동으로 가는 링크가 나와요.
-  var nbRows = [], nbDots = {}, nbTip = null;
+  // 다른 동 중개업소: 처음엔 맞닿은 동(data/dongmap/neighbors.json)에서 이 동 중개업소와 같은 길(예: 백제고분로)에 있는 곳을,
+  // 지도를 옮기거나 키우면 화면에 걸친 동(data/dongmap/bbox.json)의 중개업소를 흐린 점으로 찍어요.
+  // 목록에는 "다른 동" 묶음으로 들어가서, 그린 영역 안에 들어오거나 동선에 담은 것만 보여요. 동선에 담은 곳은 기기에 기억해 둬요.
+  var nbRows = [], nbIds = {}, nbDots = {}, nbTip = null, nbQ = [], nbBusy = false, doneDong = {};
+  var XK = "cs-x-v1-" + area.id;
   var myKey = (area.dong || "") || (((area.id || "").match(/^d(\d{5})-(.+)$/) || []).slice(1).join(":"));
+  if (myKey) doneDong[myKey] = 1;
   function roadOf(addr) { return ((addr || "").match(/^(\S+)/) || ["", ""])[1]; }
+  var mine = {}; A.B.forEach(function (b) { mine[b[0]] = 1; });
+  var getJ = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw r; return r.json(); }); };
+  var guFiles = {};
+  function guFile(g) { return guFiles[g] || (guFiles[g] = getJ("./data/gu/" + g + ".json").catch(function () { delete guFiles[g]; return null; })); }
+  function rowOf(x) { return [x.id, x.name, x.addr, x.addr.replace(/\s*\(.*$/, ""), x.tel, "옆동", 0, "", "", undefined, x.dong, "서울 " + x.gu]; }
+  function addNb(list) { // 새로 찾은 곳을 점 목록과 중개업소 목록에 함께 넣어요
+    var add = list.filter(function (x) { if (mine[x.id] || nbIds[x.id]) return false; nbIds[x.id] = 1; return true; });
+    if (!add.length) return;
+    nbRows = nbRows.concat(add);
+    if (A.addExtra) A.addExtra(add.map(rowOf));
+  }
+  function savePicked() {
+    var on = {}; A.picks().forEach(function (b) { on[b[0]] = 1; });
+    var keep = nbRows.filter(function (x) { return on[x.id]; });
+    try { if (keep.length) localStorage.setItem(XK, JSON.stringify(keep)); else localStorage.removeItem(XK); } catch (e) {}
+  }
+  try { addNb(JSON.parse(localStorage.getItem(XK) || "[]")); } catch (e) {}
   function loadNb() {
     if (!myKey || !window.fetch) return Promise.resolve();
-    var mine = {}, roads = {};
-    A.B.forEach(function (b) { mine[b[0]] = 1; roads[roadOf(b[2])] = 1; });
-    var get = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw r; return r.json(); }); };
-    return get("./data/dongmap/neighbors.json").then(function (NB) {
+    var roads = {};
+    A.B.forEach(function (b) { roads[roadOf(b[2])] = 1; });
+    return getJ("./data/dongmap/neighbors.json").then(function (NB) {
       var list = (NB[myKey] || []).filter(function (k) { return k !== myKey; }), byGu = {};
       list.forEach(function (k) { var g = k.split(":")[0]; (byGu[g] = byGu[g] || []).push(k.split(":")[1]); });
       return Promise.all(Object.keys(byGu).map(function (g) {
-        return get("./data/gu/" + g + ".json").then(function (d) {
+        return guFile(g).then(function (d) {
+          if (!d) return;
+          var got = [];
           byGu[g].forEach(function (dn) {
             (d.dongs[dn] || []).forEach(function (r) {
-              if (mine[r[0]] || /^gone:/.test(r[5] || "") || !roads[roadOf(r[3])]) return;
-              nbRows.push({ id: r[0], name: r[2], addr: r[3], tel: r[4], gu: d.gu, code: g, dong: dn });
+              if (/^gone:/.test(r[5] || "") || !roads[roadOf(r[3])]) return;
+              got.push({ id: r[0], name: r[2], addr: r[3], tel: r[4], gu: d.gu, code: g, dong: dn });
             });
           });
-        }, function () {});
+          addNb(got);
+        });
       }));
     }, function () {});
   }
-  function geocodeNb(kakao) {
+  // 화면에 걸친 동의 중개업소를 모두 불러와요. 너무 넓게 보면(구 전체 등) 위치 찾는 데 오래 걸려서, 어느 정도 키웠을 때만 해요.
+  var BB = null, MAXLV = 5, viewTimer = null;
+  function loadView(kakao) {
+    if (!map || !window.fetch) return;
+    if (map.getLevel() > MAXLV) { viewNote(); return; }
+    (BB ? Promise.resolve(BB) : getJ("./data/dongmap/bbox.json").then(function (d) { return BB = d; })).then(function (bb) {
+      var r = map.getBounds(), sw = r.getSouthWest(), ne = r.getNorthEast(), w = sw.getLng(), s = sw.getLat(), e = ne.getLng(), n = ne.getLat();
+      var want = Object.keys(bb).filter(function (k) { var q = bb[k]; return !doneDong[k] && q[0] <= e && q[2] >= w && q[1] <= n && q[3] >= s; });
+      if (!want.length) return;
+      want.forEach(function (k) { doneDong[k] = 1; });
+      var byGu = {}; want.forEach(function (k) { var g = k.split(":")[0]; (byGu[g] = byGu[g] || []).push(k.split(":")[1]); });
+      return Promise.all(Object.keys(byGu).map(function (g) {
+        return guFile(g).then(function (d) {
+          if (!d) { byGu[g].forEach(function (dn) { delete doneDong[g + ":" + dn]; }); return; }
+          var got = [];
+          byGu[g].forEach(function (dn) {
+            (d.dongs[dn] || []).forEach(function (r) { if (!/^gone:/.test(r[5] || "")) got.push({ id: r[0], name: r[2], addr: r[3], tel: r[4], gu: d.gu, code: g, dong: dn }); });
+          });
+          addNb(got);
+        });
+      })).then(function () { drawNb(kakao); geocodeNb(kakao); });
+    }, function () {});
+  }
+  function viewNote() { if (map && map.getLevel() > MAXLV && $("#kmapNote")) $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요 · 지도를 더 키우면 다른 동 중개업소도 흐린 점으로 보여요"; }
+  function geocodeNb(kakao) { // 위치를 아직 모르는 곳을 차례로 찾아요. 지금 화면에 가까운 곳부터.
+    if (nbBusy) return Promise.resolve();
     var g = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK, ZERO = kakao.maps.services.Status.ZERO_RESULT;
-    var todo = nbRows.filter(function (x) { return !cache.p[x.id] && !cache.miss[x.id]; }), i = 0, n = 0;
+    nbBusy = true;
     return new Promise(function (res) {
-      var live = 0;
+      var live = 0, n = 0;
+      function pickNext() {
+        var todo = nbRows.filter(function (x) { return !cache.p[x.id] && !cache.miss[x.id] && !x.q && !x.f; });
+        if (!todo.length) return null;
+        if (map) { // 화면 안 동 먼저
+          var bb = BB || {}, r = map.getBounds(), sw = r.getSouthWest(), ne = r.getNorthEast();
+          var inView = todo.filter(function (x) { var q = bb[x.code + ":" + x.dong]; return q && q[0] <= ne.getLng() && q[2] >= sw.getLng() && q[1] <= ne.getLat() && q[3] >= sw.getLat(); });
+          if (inView.length) return inView[0];
+        }
+        return todo[0];
+      }
       function next() {
-        if (i >= todo.length) { if (!live) res(); return; }
-        var x = todo[i++]; live++;
+        var x = pickNext();
+        if (!x) { if (!live) res(); return; }
+        x.q = 1; live++;
         g.addressSearch(x.gu + " " + x.addr.replace(/\s*\(.*$/, ""), function (r, st) {
-          live--;
-          if (st === OK && r[0]) cache.p[x.id] = [+r[0].y, +r[0].x]; else if (st === ZERO) cache.miss[x.id] = 1;
-          if (++n % 25 === 0) { saveCache(); fire(); }
+          live--; x.q = 0;
+          if (st === OK && r[0]) cache.p[x.id] = [+r[0].y, +r[0].x]; else if (st === ZERO) cache.miss[x.id] = 1; else x.f = 1; // 오류는 이번에만 건너뛰어요
+          if (++n % 20 === 0) { saveCache(); if (map) drawNb(kakao); }
           next();
         });
       }
-      if (!todo.length) res(); else for (var k = 0; k < 4; k++) next();
-    }).then(saveCache);
+      for (var k = 0; k < 4; k++) next();
+    }).then(function () { nbBusy = false; saveCache(); if (map) drawNb(kakao); });
   }
   function drawNb(kakao) {
     if (!map || !nbRows.length) return;
@@ -328,23 +389,34 @@
       nbTip.ov = new kakao.maps.CustomOverlay({ content: nbTip.el, xAnchor: 0.5, yAnchor: 1.15, zIndex: 4, clickable: true });
       kakao.maps.event.addListener(map, "click", function () { nbTip.ov.setMap(null); });
     }
+    var picked = {}; A.picks().forEach(function (b) { picked[b[0]] = 1; });
     nbRows.forEach(function (x) {
-      var ll = cache.p[x.id]; if (!ll || nbDots[x.id]) return;
-      var btn = document.createElement("button"); btn.type = "button"; btn.className = "dot nb"; btn.title = x.name + " (" + x.dong + ")"; btn.setAttribute("aria-label", x.name + ", 옆 동 " + x.dong);
-      var pos = new kakao.maps.LatLng(ll[0], ll[1]);
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation(); if (drawing) return;
-        var t = nbTip.el; t.textContent = "";
-        var b = document.createElement("b"); b.textContent = x.name; t.appendChild(b);
-        var s1 = document.createElement("span"); s1.textContent = "옆 동 " + x.dong + " · " + x.addr; t.appendChild(s1);
-        if (x.tel) { var tel = document.createElement("a"); tel.href = "tel:" + x.tel.replace(/[^\d+]/g, ""); tel.textContent = x.tel; t.appendChild(tel); }
-        var go = document.createElement("a"); go.href = "./?gu=" + x.code + "&dong=" + encodeURIComponent(x.dong); go.textContent = x.dong + " 중개업소 보기 ›"; t.appendChild(go);
-        nbTip.ov.setPosition(pos); nbTip.ov.setMap(map);
-      });
-      var ov = new kakao.maps.CustomOverlay({ position: pos, content: btn, yAnchor: 0.5, xAnchor: 0.5, clickable: true, zIndex: -1 });
-      ov.setMap(map); nbDots[x.id] = ov;
+      var ll = cache.p[x.id], d = nbDots[x.id];
+      if (!ll) return;
+      if (!d) {
+        var btn = document.createElement("button"); btn.type = "button"; btn.className = "dot nb"; btn.title = x.name + " (" + x.dong + ")"; btn.setAttribute("aria-label", x.name + ", " + x.dong);
+        var pos = new kakao.maps.LatLng(ll[0], ll[1]);
+        btn.addEventListener("click", function (e) { e.stopPropagation(); if (!drawing) showTip(x, pos); });
+        d = nbDots[x.id] = { el: btn, ov: new kakao.maps.CustomOverlay({ position: pos, content: btn, yAnchor: 0.5, xAnchor: 0.5, clickable: true, zIndex: -1 }) };
+        d.ov.setMap(map);
+      }
+      d.el.dataset.status = A.status(x.id);
+      d.el.dataset.pick = picked[x.id] ? "1" : "";
     });
   }
+  function showTip(x, pos) {
+    var t = nbTip.el; t.textContent = "";
+    var b = document.createElement("b"); b.textContent = x.name; t.appendChild(b);
+    var s1 = document.createElement("span"); s1.textContent = x.dong + " · " + x.addr; t.appendChild(s1);
+    if (x.tel) { var tel = document.createElement("a"); tel.href = "tel:" + x.tel.replace(/[^\d+]/g, ""); tel.textContent = x.tel; t.appendChild(tel); }
+    var on = A.picks().some(function (p) { return p[0] === x.id; });
+    var pk = document.createElement("button"); pk.type = "button"; pk.className = "tg pick"; pk.setAttribute("aria-pressed", String(on)); pk.textContent = on ? "동선에 담음" : "동선 담기";
+    pk.addEventListener("click", function (e) { e.stopPropagation(); A.setPick(x.id, !on); showTip(x, pos); });
+    t.appendChild(pk);
+    var go = document.createElement("a"); go.href = "./?gu=" + x.code + "&dong=" + encodeURIComponent(x.dong); go.textContent = x.dong + " 중개업소 보기 ›"; t.appendChild(go);
+    nbTip.ov.setPosition(pos); nbTip.ov.setMap(map);
+  }
+  A.onChange(function (what) { if (what === "picks" || nbIds[what]) savePicked(); });
 
   window.CS_MAP.pickByRegion = function (cb) { // 지도 탭으로 가서 영역을 그리게 하고, 완료하면 안에 있는 중개업소 id들을 cb로 넘겨요
     sdk.then(function () {
@@ -362,6 +434,6 @@
     A.onChange(redraw);
     geoWaiters.push(redraw);
     return geocodeAll(kakao).then(function () { geoDone = true; fire(); })
-      .then(loadNb).then(function () { return geocodeNb(kakao); }).then(function () { if (map) drawNb(kakao); });
+      .then(loadNb).then(function () { if (map) drawNb(kakao); return geocodeNb(kakao); });
   }).catch(function () { geoDone = true; fire(); });
 })();
