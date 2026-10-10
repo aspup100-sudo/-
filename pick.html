@@ -9,6 +9,7 @@
 <style>
   .pk-map{height:min(62vh,560px);border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
   .pk-map img{max-width:none!important}
+  header.top{position:static}  /* 이 페이지는 위쪽 제목이 따라다니지 않게: 그리기 버튼이 가려지지 않도록 */
   .pk-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .pk-bar .mini{padding:8px 12px;font-size:14px}
   .pk-out{font:inherit;font-size:13px;width:100%;min-height:120px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:10px;line-height:1.5}
@@ -73,7 +74,7 @@
   }
   var redraw = function () {};
   $("#pkCopy").addEventListener("click", function () {
-    if (!out.value) { msg.textContent = "먼저 영역을 그려주세요."; return; }
+    if (!out.value) { msg.textContent = (document.getElementById("pkOk").hidden ? "먼저 영역을 그려주세요." : "꼭짓점을 다 찍었으면 위쪽 초록색 완료 버튼을 눌러주세요. 그래야 내용이 만들어져요."); return; }
     var done = function () { $("#pkCopy").textContent = "복사됨"; setTimeout(function () { $("#pkCopy").textContent = "복사"; }, 1500); };
     try { navigator.clipboard.writeText(out.value).then(done, function () { out.select(); }); } catch (e) { out.select(); }
   });
