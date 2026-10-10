@@ -268,6 +268,7 @@
       box.hidden = false; $("#svgMap").hidden = true; $("#streets").hidden = false;
       map = new kakao.maps.Map($("#kmap"), { center: new kakao.maps.LatLng(37.5665, 126.978), level: 5 });
       try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {}
+      wireQuiet(kakao);
       // 지도를 옮기거나 키우고 멈추면 화면에 걸친 다른 동 중개업소를 불러와요.
       kakao.maps.event.addListener(map, "idle", function () { clearTimeout(viewTimer); viewTimer = setTimeout(function () { if ($("#kmap").offsetWidth) loadView(kakao); }, 400); });
       // 로그인 확인 중처럼 화면이 가려진 채로 지도가 만들어지면 크기가 0이라 엉뚱한 곳(전국)이 보여요.
@@ -443,6 +444,40 @@
     nbTip.ov.setPosition(pos); nbTip.ov.setMap(map);
   }
   A.onChange(function (what) { if (what === "picks" || nbIds[what]) savePicked(); });
+
+  // 지도 글씨 줄이기: 카카오 지도는 가게·건물 이름을 끌 수 없어서, 바탕 그림을 흐리게 하고
+  // 지하철역(카카오 장소 검색 SW8)과 우리 구역 이름만 또렷하게 다시 써요. 버튼으로 원래 지도로 돌아갈 수 있어요.
+  var QK = "cs-quiet", stnShown = {}, stnOv = [], stnTimer = null;
+  function wireQuiet(kakao) {
+    var btn = $("#quietBtn"), box = $("#kmap"), on = true;
+    try { on = localStorage.getItem(QK) !== "0"; } catch (e) {}
+    function set(v) {
+      on = v; box.classList.toggle("quiet", on);
+      if (btn) { btn.setAttribute("aria-pressed", String(on)); btn.textContent = on ? "지도 글씨: 역·구역만" : "지도 글씨: 모두"; }
+      stnOv.forEach(function (o) { o.setMap(on && map.getLevel() <= 6 ? map : null); });
+      try { localStorage.setItem(QK, on ? "1" : "0"); } catch (e) {}
+      if (on) stations(kakao);
+    }
+    if (btn) btn.addEventListener("click", function () { set(!on); });
+    kakao.maps.event.addListener(map, "idle", function () { clearTimeout(stnTimer); stnTimer = setTimeout(function () { if (on) stations(kakao); }, 500); });
+    kakao.maps.event.addListener(map, "zoom_changed", function () { var v = on && map.getLevel() <= 6; stnOv.forEach(function (o) { o.setMap(v ? map : null); }); });
+    set(on);
+  }
+  function stations(kakao) {
+    if (!map || map.getLevel() > 6 || !kakao.maps.services.Places) return;
+    var ps = new kakao.maps.services.Places(map), OK = kakao.maps.services.Status.OK, page = 0;
+    ps.categorySearch("SW8", function (r, st, pg) {
+      if (st !== OK) return;
+      r.forEach(function (s) {
+        var nm = (s.place_name || "").replace(/\s+/g, " ").trim(); if (!nm || stnShown[s.id]) return;
+        stnShown[s.id] = 1;
+        var lab = document.createElement("span"); lab.className = "stn"; lab.textContent = nm;
+        var ov = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(+s.y, +s.x), content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 1 });
+        ov.setMap(map); stnOv.push(ov);
+      });
+      if (pg && pg.hasNextPage && ++page < 3) pg.nextPage();
+    }, { useMapBounds: true });
+  }
 
   window.CS_MAP.pickByRegion = function (cb) { // 지도 탭으로 가서 영역을 그리게 하고, 완료하면 안에 있는 중개업소 id들을 cb로 넘겨요
     sdk.then(function () {
