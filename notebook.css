@@ -1,0 +1,71 @@
+/* 현장 수첩 디자인: styles.css 위에 얹어요. 모눈종이 바탕, 볼펜 잉크, 형광펜 강조, 빨간 도장 */
+:root{
+  --paper:#F7F6F0; --grid:rgba(60,110,170,.09); --sheet:#FFFEFA; --pen:#1E2A44; --pen-soft:#5B6478; --rule:#C9CED8;
+  --marker:#FFE866; --stamp:#C8372D; --stamp-soft:#FBE3DF; --tab:#E7E4D8;
+  --hand:"Nanum Pen Script","IBM Plex Sans KR",cursive; --display:var(--hand);
+  --bg:var(--paper); --surface:var(--sheet); --ink:var(--pen); --muted:var(--pen-soft); --line:var(--rule);
+  --accent:#2E5AA8; --accent-soft:#E3EBF8; --first:var(--stamp); --first-soft:var(--stamp-soft); --call:#2E5AA8; --call-soft:#E3EBF8;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#171B22; --grid:rgba(150,180,230,.06); --sheet:#1F242D; --pen:#E9E6DA; --pen-soft:#9EA5B3; --rule:#363D4A;
+  --marker:#6B5E12; --stamp:#E8685C; --stamp-soft:#3A1F1C; --tab:#262C36;
+  --accent:#8DB0EC; --accent-soft:#1F2C44; --call:#8DB0EC; --call-soft:#1F2C44}}
+:root[data-theme="dark"]{
+  --paper:#171B22; --grid:rgba(150,180,230,.06); --sheet:#1F242D; --pen:#E9E6DA; --pen-soft:#9EA5B3; --rule:#363D4A;
+  --marker:#6B5E12; --stamp:#E8685C; --stamp-soft:#3A1F1C; --tab:#262C36;
+  --accent:#8DB0EC; --accent-soft:#1F2C44; --call:#8DB0EC; --call-soft:#1F2C44}
+body{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:18px 18px}
+/* 머리: 수첩 표지 제목은 손글씨 */
+header.top{background:var(--paper);border-bottom:2px solid var(--pen);padding-block:14px 0}
+h1{font-family:var(--hand);font-size:38px;line-height:1;letter-spacing:0;font-weight:400}
+.progress{margin:4px 0 10px}
+.progress b{background:linear-gradient(transparent 55%,var(--marker) 55%);padding:0 2px;color:var(--ink)}
+/* 탭: 수첩 옆 인덱스 탭 */
+.tabs,.tabs.three{gap:4px;margin-bottom:-2px}
+.tabs button{border:2px solid var(--pen);border-bottom:0;border-radius:10px 10px 0 0;background:var(--tab);color:var(--muted);padding:8px 6px 9px;font-weight:600}
+.tabs button[aria-selected="true"]{background:var(--paper);color:var(--ink);position:relative;padding-bottom:11px;margin-top:-2px}
+/* 제목: 형광펜 밑줄 */
+h2{font-size:16px;font-weight:700;display:inline;background:linear-gradient(transparent 58%,var(--marker) 58%);padding:0 3px;align-self:flex-start}
+.map-head h2{display:inline}
+/* 종이 카드: 얇은 잉크 선 + 왼쪽 빨간 여백선 */
+.map,.bk,.lt,.area,.rt-item,details,.ask,.auth-card{background:var(--sheet);border:1.5px solid var(--pen);border-radius:4px;box-shadow:3px 3px 0 var(--rule)}
+.bk,.lt{padding:14px 14px 14px 22px;position:relative}
+.bk::before,.lt::before{content:"";position:absolute;left:12px;top:0;bottom:0;border-left:1.5px solid color-mix(in srgb,var(--stamp) 45%,transparent)}
+.bk[data-status="call"],.bk[data-status="visit"]{border-left:1.5px solid var(--pen)}
+.bk h3,.lt h3{font-size:18px;font-weight:700}
+/* '먼저 갈 곳' 같은 표시는 비스듬한 도장 */
+.badge{background:transparent;color:var(--stamp);border:1.5px solid var(--stamp);border-radius:3px;transform:rotate(-4deg);display:inline-block;letter-spacing:.04em}
+.badge.fresh{color:var(--accent);border-color:var(--accent);background:transparent}
+.zchip{background:transparent;border:1.5px solid currentColor;border-radius:3px;transform:rotate(-3deg)}
+/* 방문 표시: 카드 오른쪽 위에 빨간 동그라미 도장 */
+.bk[data-status="visit"]::after{content:"방문";position:absolute;right:14px;top:10px;width:46px;height:46px;border:2.5px solid var(--stamp);border-radius:50%;color:var(--stamp);font:700 14px/41px var(--body);text-align:center;transform:rotate(-12deg);opacity:.85}
+.bk[data-status="call"]::after{content:"통화";position:absolute;right:14px;top:10px;width:46px;height:46px;border:2.5px solid var(--call);border-radius:50%;color:var(--call);font:700 14px/41px var(--body);text-align:center;transform:rotate(-12deg);opacity:.85}
+/* 링크는 볼펜 밑줄 */
+.row a,.lk,.rv-go,.lkbtn{color:var(--accent);text-decoration-thickness:1.5px}
+.tags{color:var(--stamp)}
+/* 버튼: 네모난 볼펜 테두리 */
+.mini,.tg,.chip,.rv-save{border:1.5px solid var(--pen);border-radius:4px;background:var(--sheet);color:var(--ink)}
+.tg{font-weight:600}
+.tg.call[aria-pressed="true"]{background:var(--call-soft);border-color:var(--call);color:var(--call)}
+.tg.visit[aria-pressed="true"]{background:var(--stamp-soft);border-color:var(--stamp);color:var(--stamp)}
+.chip{border-radius:4px;padding:5px 11px}
+.chip[aria-pressed="true"]{background:var(--marker);border-color:var(--pen);color:var(--ink);font-weight:600}
+.rv-save{background:var(--pen);color:var(--paper)}
+.mini.strong{background:var(--pen);border-color:var(--pen);color:var(--paper)}
+.rv-sum{border:1.5px dashed var(--rule);background:transparent;border-radius:4px}
+/* 메모칸: 줄 공책 */
+.bk textarea{background:var(--sheet) repeating-linear-gradient(transparent 0 25px,var(--rule) 25px 26px);background-attachment:local;line-height:26px;padding:0 6px;border:0;border-bottom:1.5px solid var(--rule);border-radius:0;min-height:52px}
+textarea,input[type=text],input[type=number],input[type=email],input[type=password],select{border:0;border-bottom:1.5px solid var(--pen);border-radius:0;background:transparent;padding:8px 2px}
+/* 매물: 가격은 손글씨, 호가는 메모 쪽지 */
+.price,.area-name{font-family:var(--hand);font-weight:400;font-size:30px}
+.facts li{border:0;border-bottom:1.5px solid var(--rule);border-radius:0;padding:2px 4px}
+.facts li.new{border-bottom-color:var(--stamp)}
+.stage{color:var(--accent)}
+.grp{color:var(--ink);font-weight:700;border-top:1.5px dashed var(--rule);padding-top:12px}
+/* 지도 */
+.cl[aria-pressed="true"] circle{fill:var(--stamp)}
+.gm{stroke:var(--pen);stroke-opacity:.55;stroke-width:2;fill:var(--sheet)}
+.gm[aria-pressed="true"],.gm[aria-pressed="true"]:hover{fill:var(--marker);stroke:var(--pen)}
+@media (hover:hover){.gm:hover{fill:color-mix(in srgb,var(--marker) 45%,var(--sheet))}}
+.gm-l.on{fill:var(--ink);stroke:var(--marker)}
+.totop{border-radius:4px;background:var(--pen);border-color:var(--pen);color:var(--paper);box-shadow:3px 3px 0 var(--rule)}
