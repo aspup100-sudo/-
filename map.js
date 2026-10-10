@@ -72,7 +72,7 @@
     return c;
   }
   window.CS_MAP.inside = inside; window.CS_MAP.pathOf = pathOf;
-  // 구역 표시: 정확한 경계선 자료가 없어서, 구역 안 번지 몇 곳의 가운데에 구역 면적만 한 옅은 원을 그려요.
+  // 구역 중심: 구역 안 번지 몇 곳의 가운데. 동선 탭의 "구역 주변 담기"와, 경계 자료가 없는 구역의 대략적인 원에 써요.
   var onMapClick = null;
   function zoneColor(kind) { return /도심/.test(kind) ? "#7A4FB5" : /모아타운/.test(kind) ? "#2460A7" : "#0B6E5F"; }
   var zoneInfo = [], zoneWaiters = [], zonesReady = null;
@@ -98,36 +98,94 @@
         var near = pts.filter(function (p) { return Math.abs(p[0] - m[0]) * 111000 < Math.max(350, 2.5 * r) && Math.abs(p[1] - m[1]) * 88000 < Math.max(350, 2.5 * r); });
         if (!near.length) near = pts;
         var c = [near.reduce(function (a, p) { return a + p[0]; }, 0) / near.length, near.reduce(function (a, p) { return a + p[1]; }, 0) / near.length];
-        zoneInfo.push({ short: z.short || z.name, kind: z.kind || "", soft: !!z.soft, c: c, r: r });
+        zoneInfo.push({ short: z.short || z.name, kind: z.kind || "", soft: !!z.soft, upis: z.upis || "", c: c, r: r });
       });
     })).then(function () { saveCache(); zoneWaiters.forEach(function (f) { try { f(); } catch (e) {} }); });
     return zonesReady;
   }
+  // 서울시 도시계획사업 자료의 실제 구역 경계 (data/zones/<구코드>.json, tools/build-zones.py로 만듦)
+  var guCode = (area.dong || "").split(":")[0] || ((area.id || "").match(/^d(\d{5})-/) || [])[1] || "";
+  function realKind(k) { // 색과 범례를 나누는 큰 갈래
+    var t = k.map(function (x) { return x[0]; }).join(" ");
+    return /도심 공공|공공주택/.test(t) ? "도심공공" : /모아타운|가로주택|자율주택|소규모/.test(t) ? "모아타운·소규모" : /재정비촉진|존치/.test(t) ? "재정비촉진"
+      : /역세권|장기전세/.test(t) ? "역세권" : /재건축/.test(t) && !/재개발|신속/.test(t) ? "재건축" : "재개발·신통기획";
+  }
+  var KIND_COL = { "재개발·신통기획": "#0B6E5F", "재건축": "#B4541A", "모아타운·소규모": "#2460A7", "도심공공": "#7A4FB5", "재정비촉진": "#00838F", "역세권": "#6B7280" };
+  function early(k) { return k.every(function (x) { return /추진중|연번|자문|입주자/.test(x[1]); }); } // 아직 초기 단계면 점선
+  function ringsOf(p) { // 바깥 테두리(시계 방향)마다 안쪽 구멍을 붙여 카카오 도형 경로로
+    var out = [];
+    p.forEach(function (r) {
+      var s = 0; for (var i = 0, j = r.length - 1; i < r.length; j = i++) s += (r[j][0] - r[i][0]) * (r[j][1] + r[i][1]);
+      var path = r.map(function (q) { return new kakao.maps.LatLng(q[1], q[0]); });
+      if (s < 0 || !out.length) out.push([path]); else out[out.length - 1].push(path);
+    });
+    return out;
+  }
   function drawZones(kakao) {
-    var kinds = {}, anySoft = false, zoneLabels = [], labelsOn = map.getLevel() <= 6;
+    var kinds = {}, anySoft = false, anyCircle = false, zoneLabels = [], labelsOn = map.getLevel() <= 5, mine = {};
     // 멀리서 보면 구역 이름표가 겹쳐서, 어느 정도 확대했을 때만 이름표를 보여요.
     kakao.maps.event.addListener(map, "zoom_changed", function () {
-      var on = map.getLevel() <= 6; if (on === labelsOn) return; labelsOn = on;
+      var on = map.getLevel() <= 5; if (on === labelsOn) return; labelsOn = on;
       zoneLabels.forEach(function (o) { o.setMap(on ? map : null); });
     });
-    computeZones(kakao).then(function () {
-      zoneInfo.forEach(function (z) {
-        var col = zoneColor(z.kind), ll = new kakao.maps.LatLng(z.c[0], z.c[1]);
-        var circle = new kakao.maps.Circle({ center: ll, radius: z.r, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.75, strokeStyle: z.soft ? "shortdash" : "solid", fillColor: col, fillOpacity: 0.13 });
-        circle.setMap(map);
-        kakao.maps.event.addListener(circle, "click", function (e) { if (onMapClick) onMapClick(e); });
-        var lab = document.createElement("span"); lab.className = "zlabel"; lab.textContent = z.short; lab.style.color = col;
-        var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }); zoneLabels.push(lo);
-        if (labelsOn) lo.setMap(map);
-        kinds[col] = /도심/.test(z.kind) ? "도심공공" : /모아타운/.test(z.kind) ? "모아타운" : "신통기획 재개발"; if (z.soft) anySoft = true;
-      });
+    function label(text, ll, col) {
+      var lab = document.createElement("span"); lab.className = "zlabel"; lab.textContent = text; lab.style.color = col;
+      var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }); zoneLabels.push(lo);
+      if (labelsOn) lo.setMap(map);
+    }
+    // 구역을 누르면 이름·단계를 잠깐 보여 줘요 (영역을 그리는 중에는 꼭짓점 찍기가 먼저예요)
+    var tip = document.createElement("div"); tip.className = "ztip";
+    var tipOv = new kakao.maps.CustomOverlay({ content: tip, xAnchor: 0.5, yAnchor: 1.15, zIndex: 3 });
+    kakao.maps.event.addListener(map, "click", function () { tipOv.setMap(null); });
+    function showTip(e, title, lines) {
+      if (drawing || !e || !e.latLng) return;
+      tip.textContent = ""; var b = document.createElement("b"); b.textContent = title; tip.appendChild(b);
+      lines.forEach(function (t) { var d = document.createElement("span"); d.textContent = t; tip.appendChild(d); });
+      tipOv.setPosition(e.latLng); tipOv.setMap(map);
+    }
+    function legend(srcNote) {
       var leg = $("#zoneLegend"); if (!Object.keys(kinds).length) return;
       leg.textContent = "";
-      Object.keys(kinds).forEach(function (col) { var sp = document.createElement("span"); sp.className = "zl"; var ic = document.createElement("i"); ic.style.background = col; sp.appendChild(ic); sp.appendChild(document.createTextNode(kinds[col])); leg.appendChild(sp); });
-      leg.appendChild(document.createTextNode((anySoft ? "점선은 후보지로 뽑히기 전 단계. " : "") + "원은 구역의 대략적인 위치와 크기예요. 실제 경계선이 아니에요."));
+      Object.keys(kinds).forEach(function (name) { var sp = document.createElement("span"); sp.className = "zl"; var ic = document.createElement("i"); ic.style.background = kinds[name]; sp.appendChild(ic); sp.appendChild(document.createTextNode(name)); leg.appendChild(sp); });
+      leg.appendChild(document.createTextNode((anySoft ? "점선은 아직 추진 초기 단계(후보지 신청·연번부여 등)예요. " : "") + (anyCircle ? "원은 경계 자료가 없는 구역의 대략적인 위치와 크기예요. " : "") + "구역을 누르면 이름과 단계가 나와요. " + srcNote));
       leg.hidden = false;
+    }
+    var real = guCode ? fetch("./data/zones/" + guCode + ".json").then(function (r) { if (!r.ok) throw r; return r.json(); }).catch(function () { return null; }) : Promise.resolve(null);
+    Promise.all([real, computeZones(kakao)]).then(function (res) {
+      var Z = res[0], srcNote = "";
+      (area.zones || []).forEach(function (z) { if (z.upis) mine[z.upis] = z; });
+      if (Z && Z.z) {
+        var dd = (Z.date || "").split("-");
+        srcNote = "경계선 출처: " + Z.src + (dd.length === 2 ? ", " + dd[0] + "년 " + (+dd[1]) + "월 자료" : "") + ". 법적 효력은 없는 참고 자료예요.";
+        Z.z.forEach(function (z) {
+          var my = mine[z.id], kind = realKind(z.k), col = KIND_COL[kind], soft = early(z.k), sum = [0, 0, 0];
+          kinds[kind] = col; if (soft) anySoft = true;
+          ringsOf(z.p).forEach(function (path) {
+            var poly = new kakao.maps.Polygon({ path: path, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.85, strokeStyle: soft ? "shortdash" : "solid", fillColor: col, fillOpacity: my ? 0.18 : 0.1 });
+            poly.setMap(map);
+            kakao.maps.event.addListener(poly, "click", function (e) {
+              if (onMapClick) onMapClick(e);
+              showTip(e, my ? my.name : z.n, z.k.map(function (x) { return x[0] + " · " + x[1]; }).concat(z.m2 ? ["면적 " + z.m2.toLocaleString("ko-KR") + "㎡"] : []));
+            });
+          });
+          z.p[0].forEach(function (q) { sum[0] += q[1]; sum[1] += q[0]; sum[2]++; });
+          label(my ? (my.short || my.name) : z.n.replace(/\s*(주택재개발사업|가로주택정비사업|소규모재건축정비사업|정비사업)$/, ""), new kakao.maps.LatLng(sum[0] / sum[2], sum[1] / sum[2]), col);
+        });
+      }
+      // 경계 자료에 아직 없는 구역(후보지 전 단계 등)은 예전처럼 대략적인 원으로
+      zoneInfo.forEach(function (z) {
+        if (z.upis && Z && Z.z && Z.z.some(function (x) { return x.id === z.upis; })) return;
+        var col = zoneColor(z.kind), ll = new kakao.maps.LatLng(z.c[0], z.c[1]); anyCircle = true;
+        var circle = new kakao.maps.Circle({ center: ll, radius: z.r, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.75, strokeStyle: "shortdash", fillColor: col, fillOpacity: 0.08 });
+        circle.setMap(map);
+        kakao.maps.event.addListener(circle, "click", function (e) { if (onMapClick) onMapClick(e); showTip(e, z.short, [z.kind, "경계 자료 없음 (대략적인 위치)"]); });
+        label(z.short, ll, col);
+        var kn = /도심/.test(z.kind) ? "도심공공" : /모아타운/.test(z.kind) ? "모아타운·소규모" : "재개발·신통기획"; kinds[kn] = KIND_COL[kn]; anySoft = anySoft || z.soft;
+      });
+      legend(srcNote);
     });
   }
+
 
   function wireRegion(kakao) {
     var btn = $("#regionBtn"), undo = $("#regionUndo"), ok = $("#regionOk"), cancel = $("#regionCancel"), msg = $("#regionMsg"), box = $("#kmap");
