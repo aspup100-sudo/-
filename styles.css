@@ -212,3 +212,15 @@ input[type=number]{font:inherit;font-size:16px;width:100%;border:1px solid var(-
 .zleg{margin:0;padding:8px 6px 0;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
 .zl{display:inline-flex;align-items:center;gap:4px;color:var(--ink);font-weight:500}
 .zl i{width:10px;height:10px;border-radius:50%;opacity:.55;display:inline-block}
+
+/* 로그인·회원가입 */
+body.locked .wrap > section:not(#authView), body.locked #tabs, body.locked .bar, body.locked #progress, body.locked #save, body.locked #toTop{display:none!important}
+.auth-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;gap:10px;max-width:400px;width:100%;margin:8px auto 0}
+.auth-card h2{font-family:var(--display);font-weight:400;font-size:22px}
+.auth-card form{display:flex;flex-direction:column;gap:10px}
+input[type=password]{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px 10px}
+.auth-err{margin:0;font-size:13px;color:var(--first);min-height:1.2em}
+.auth-card .rv-save{padding:11px 14px;font-size:15px}
+.lkbtn{font:inherit;font-size:14px;font-weight:500;background:none;border:0;padding:6px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer;align-self:flex-start}
+.acct{display:flex;flex-direction:column;gap:10px}
+button:disabled,input:disabled{opacity:.6}

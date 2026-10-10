@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
+<body class="locked">
 <div class="wrap">
   <header class="top">
     <div class="title-row">
@@ -36,6 +36,32 @@
       <button role="tab" id="tab-route" aria-selected="false" aria-controls="route">동선</button>
     </div>
   </header>
+
+  <section class="view" id="authView" hidden>
+    <div class="auth-card">
+      <h2 id="authTitle">로그인</h2>
+      <p class="hint" id="authWait">확인하는 중이에요…</p>
+      <form id="loginForm" hidden novalidate>
+        <p class="hint">임장 수첩은 회원만 볼 수 있어요.</p>
+        <label class="fld">아이디<input type="text" id="liId" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20"></label>
+        <label class="fld">비밀번호<input type="password" id="liPw" autocomplete="current-password" maxlength="64"></label>
+        <p class="auth-err" id="liErr" role="alert"></p>
+        <button class="rv-save" type="submit">로그인</button>
+        <button class="lkbtn" type="button" id="toSignup">처음이에요. 회원가입 ›</button>
+      </form>
+      <form id="signupForm" hidden novalidate>
+        <label class="fld">아이디<input type="text" id="suId" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="영문 소문자·숫자 4~20자"></label>
+        <label class="fld">비밀번호<input type="password" id="suPw" autocomplete="new-password" maxlength="64" placeholder="8자 이상"></label>
+        <label class="fld">비밀번호 확인<input type="password" id="suPw2" autocomplete="new-password" maxlength="64" placeholder="한 번 더"></label>
+        <label class="fld">닉네임<input type="text" id="suNick" autocomplete="nickname" maxlength="12" placeholder="리뷰에 보이는 이름, 2~12자"></label>
+        <p class="hint">이메일을 받지 않아서, 비밀번호를 잊으면 되찾을 방법이 없어요. 잊지 않게 적어 두세요.</p>
+        <p class="auth-err" id="suErr" role="alert"></p>
+        <button class="rv-save" type="submit">가입하기</button>
+        <button class="lkbtn" type="button" id="toLogin">‹ 이미 회원이에요. 로그인</button>
+      </form>
+      <button class="lkbtn" type="button" id="authBack" hidden>닫기</button>
+    </div>
+  </section>
 
   <section class="view" id="home" hidden>
     <p class="hint">어느 구역을 볼까요?</p>
@@ -169,6 +195,15 @@
   </div>
 </template>
 <button class="totop" id="toTop" type="button" hidden aria-label="맨 위로 올라가기">↑ 맨 위로</button>
+<dialog id="acctDlg">
+  <div class="acct">
+    <h2>내 계정</h2>
+    <p class="hint">아이디 <b id="acId"></b></p>
+    <label class="fld">닉네임<input type="text" id="acNick" maxlength="12" autocomplete="nickname"></label>
+    <p class="hint" id="acMsg" role="status"></p>
+    <div class="acts"><button class="tg visit" type="button" id="acSave" aria-pressed="true">닉네임 저장</button><button class="tg" type="button" id="acOut">로그아웃</button><button class="tg" type="button" id="acClose">닫기</button></div>
+  </div>
+</dialog>
 <dialog id="nameDlg">
   <form method="dialog" id="nameForm">
     <h2>내 이름</h2>
@@ -190,5 +225,6 @@
 <script src="./map.js"></script>
 <script src="./route.js"></script>
 <script src="./asks.js"></script>
+<script src="./auth.js"></script>
 </body>
 </html>

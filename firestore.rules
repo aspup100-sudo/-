@@ -1,10 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 리뷰: 누구나 읽고, 한 기기가 중개업소 한 곳에 하나씩 써요. 고치기·지우기는 쓴 기기만.
+    // 리뷰: 로그인한 회원만 읽고, 한 회원이 중개업소 한 곳에 하나씩 써요. 고치기·지우기는 쓴 회원만.
     match /rooms/{room}/reviews/{id} {
-      allow read: if true;
+      allow read: if request.auth != null;
       allow create, update: if request.auth != null
+                   && request.auth.token.firebase.sign_in_provider == 'password'
                    && request.resource.data.keys().hasOnly(['broker', 'uid', 'stars', 'kind', 'fake', 'text', 'by', 'at'])
                    && request.resource.data.uid == request.auth.uid
                    && request.resource.data.broker is string && request.resource.data.broker.size() <= 10

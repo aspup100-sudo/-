@@ -177,7 +177,7 @@
   function showName() { nameBtn.textContent = me ? "리뷰 이름: " + me : "리뷰에 쓸 이름 정하기"; }
   function closeName() { if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
   function openName() { $("#nameInput").value = me; if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", ""); }
-  nameBtn.addEventListener("click", openName);
+  nameBtn.addEventListener("click", function () { var AU = window.CS_AUTH; if (AU && AU.active) AU.openAccount(); else openName(); });
   $("#nameCancel").addEventListener("click", closeName);
   $("#nameForm").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -235,7 +235,12 @@
   window.CS_APP = {
     area: AREA, B: B, cards: cards, el: el, when: when, $: $,
     name: function () { return me; },
-    needName: function (then) { if (me) { then(me); return; } nameWaiters.push(then); openName(); },
+    needName: function (then) {
+      var AU = window.CS_AUTH;
+      if (AU && AU.active) { var u = AU.user(); if (u) then(u.nick || u.id); else AU.requireLogin(); return; } // 회원제: 닉네임이 리뷰 이름
+      if (me) { then(me); return; } nameWaiters.push(then); openName();
+    },
+    setName: function (n) { me = n || ""; },
     refilter: function () { applyFilter(); },
     visible: visible, picks: picks, setPick: setPick,
     setRegion: function (fn) { regionFn = fn || null; applyFilter(); },

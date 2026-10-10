@@ -86,7 +86,12 @@
       var k = "z:" + addr; if (cache.p[k]) return Promise.resolve(cache.p[k]);
       return new Promise(function (res) { g.addressSearch(area.gu + " " + addr, function (r, st) { if (st === OK && r[0]) { cache.p[k] = [+r[0].y, +r[0].x]; res(cache.p[k]); } else res(null); }); });
     }
-    var kinds = {}, anySoft = false;
+    var kinds = {}, anySoft = false, zoneLabels = [], labelsOn = map.getLevel() <= 6;
+    // 멀리서 보면 구역 이름표가 겹쳐서, 어느 정도 확대했을 때만 이름표를 보여요.
+    kakao.maps.event.addListener(map, "zoom_changed", function () {
+      var on = map.getLevel() <= 6; if (on === labelsOn) return; labelsOn = on;
+      zoneLabels.forEach(function (o) { o.setMap(on ? map : null); });
+    });
     Promise.all(list.map(function (z) {
       return Promise.all(z.at.map(one)).then(function (pts) {
         pts = pts.filter(Boolean); if (!pts.length) return;
@@ -100,7 +105,8 @@
         circle.setMap(map);
         kakao.maps.event.addListener(circle, "click", function (e) { if (onMapClick) onMapClick(e); });
         var lab = document.createElement("span"); lab.className = "zlabel"; lab.textContent = z.short || z.name; lab.style.color = col;
-        new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }).setMap(map);
+        var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }); zoneLabels.push(lo);
+        if (map.getLevel() <= 6) lo.setMap(map);
         kinds[col] = /도심/.test(z.kind) ? "도심공공" : /모아타운/.test(z.kind) ? "모아타운" : "신통기획 재개발"; if (z.soft) anySoft = true;
       });
     })).then(function () {

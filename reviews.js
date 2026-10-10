@@ -26,7 +26,7 @@
       box.appendChild(btn);
     }
     var rs = listOf(id), n = rs.length; btn.textContent = "";
-    if (!n) { btn.appendChild(el("span", "rv-none", "아직 리뷰가 없어요")); }
+    if (!n) { btn.appendChild(el("span", "rv-none", sync && !myUid ? "로그인하면 리뷰가 보여요" : "아직 리뷰가 없어요")); }
     else {
       var avg = rs.reduce(function (a, r) { return a + (r.stars || 0); }, 0) / n;
       var s = el("span", "rv-avg"); s.appendChild(el("span", "rv-star", "★")); s.appendChild(document.createTextNode(" " + avg.toFixed(1)));
@@ -136,24 +136,21 @@
   window.CS_SYNC.then(function (s) {
     if (!s || !s.subscribeReviews) return;
     sync = s;
-    var first = true, ready = s.uid().then(function (u) { myUid = u; }, function () {});
-    s.subscribeReviews(function (docs) {
-      ready.then(function () {
-        var next = {}; docs.forEach(function (r) { if (r && r.broker && A.cards[r.broker]) (next[r.broker] = next[r.broker] || []).push(r); });
-        all = next;
-        if (myUid) {
-          if (first) { // 연결 전에 이 기기에만 써 둔 리뷰를 올려요.
-            Object.keys(mine).forEach(function (id) {
-              var has = listOf(id).some(isMine);
-              if (!has && A.cards[id] && mine[id].stars) sync.setReview(id, mine[id]).catch(function () {});
-            });
-          }
-          var m = {}; docs.forEach(function (r) { if (r.uid === myUid) m[r.broker] = { stars: r.stars, kind: r.kind, fake: r.fake, text: r.text, by: r.by, at: r.at }; });
-          if (first) Object.keys(m).forEach(function (id) { mine[id] = m[id]; }); else mine = m; // 연결된 뒤에는 서버에 있는 내 리뷰가 기준
-          saveMine();
-        }
-        first = false; refreshAll();
-      });
-    }, function () {});
+    var unsub = null;
+    function start(user) { // 로그인·로그아웃할 때마다 다시 연결해요
+      if (unsub) { try { unsub(); } catch (e) {} unsub = null; }
+      myUid = user ? user.uid : "";
+      if (!user) { all = {}; mine = {}; saveMine(); refreshAll(); return; }
+      unsub = s.subscribeReviews(function (docs) {
+        var next = {}, m = {};
+        docs.forEach(function (r) {
+          if (!r || !r.broker) return;
+          if (r.uid === myUid) m[r.broker] = { stars: r.stars, kind: r.kind, fake: r.fake, text: r.text, by: r.by, at: r.at };
+          if (A.cards[r.broker]) (next[r.broker] = next[r.broker] || []).push(r);
+        });
+        all = next; mine = m; saveMine(); refreshAll();
+      }, function () {});
+    }
+    if (s.auth) s.auth.onChange(start);
   });
 })();
