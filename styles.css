@@ -183,3 +183,5 @@ select{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);borde
 .grp{scroll-margin-top:190px}
 .bk{scroll-margin-top:190px}
 .blk{display:flex;flex-direction:column;gap:10px}
+/* 카카오 지도 타일은 전역 img{max-width:100%}에 걸리면 폭이 0이 돼서 안 보여요 */
+.kmap img{max-width:none!important}
