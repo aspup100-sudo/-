@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>새 구역 고르기 · 임장 수첩</title>
+<link rel="icon" href="./icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./styles.css">
+<style>
+  .pk-map{height:min(62vh,560px);border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+  .pk-map img{max-width:none!important}
+  .pk-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .pk-bar .mini{padding:8px 12px;font-size:14px}
+  .pk-out{font:inherit;font-size:13px;width:100%;min-height:120px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:10px;line-height:1.5}
+  .pk-sel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+  .pk-sel h3{margin:0;font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title-row"><h1>새 구역 고르기</h1><span class="save" id="pkState"></span></div>
+    <p class="progress">지도에서 넣고 싶은 범위를 그리면, 그 안의 동 이름을 뽑아 줘요.</p>
+    <div class="bar"><a class="mini" href="./">‹ 임장 수첩으로</a></div>
+  </header>
+  <section class="view">
+    <div class="pk-bar">
+      <button class="mini strong" id="pkStart" type="button">영역 그리기</button>
+      <button class="mini" id="pkUndo" type="button" hidden>하나 지우기</button>
+      <button class="mini strong" id="pkOk" type="button" hidden>완료</button>
+      <button class="mini" id="pkCancel" type="button" hidden>취소</button>
+      <span class="hint" id="pkMsg" role="status">"영역 그리기"를 누르고 지도를 눌러 꼭짓점을 찍으세요. 2곳이면 네모, 3곳부터는 찍은 모양이에요. 여러 군데를 따로 그려도 돼요.</span>
+    </div>
+    <div class="pk-map" id="pkMap"></div>
+    <div class="list" id="pkList"></div>
+    <h2>Claude에게 보낼 내용</h2>
+    <p class="hint">아래 내용을 복사해서 대화창에 붙여넣으면, 그 범위의 중개업소와 재개발 구역을 앱에 넣을게요.</p>
+    <textarea class="pk-out" id="pkOut" readonly aria-label="Claude에게 보낼 내용"></textarea>
+    <div class="pk-bar"><button class="mini strong" id="pkCopy" type="button">복사</button><button class="mini" id="pkClear" type="button">전부 지우기</button></div>
+  </section>
+</div>
+<script src="./config.js"></script>
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); }, key = (window.CS_CONFIG || {}).kakaoKey;
+  var state = $("#pkState"), msg = $("#pkMsg"), out = $("#pkOut"), list = $("#pkList");
+  var sels = []; try { sels = JSON.parse(localStorage.getItem("cs-pick") || "[]") || []; } catch (e) {}
+  function save() { try { localStorage.setItem("cs-pick", JSON.stringify(sels)); } catch (e) {} }
+  function pathOf(p) { return p.length === 2 ? [[p[0][0], p[0][1]], [p[0][0], p[1][1]], [p[1][0], p[1][1]], [p[1][0], p[0][1]]] : p; }
+  function inside(pt, poly) { var c = false; for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) { var a = poly[i], b = poly[j]; if ((a[0] > pt[0]) !== (b[0] > pt[0]) && pt[1] < (b[1] - a[1]) * (pt[0] - a[0]) / (b[0] - a[0]) + a[1]) c = !c; } return c; }
+  function samples(poly) { // 영역 안을 고르게 찍어 볼 점들 (많아도 120개 정도)
+    var la = poly.map(function (p) { return p[0]; }), lo = poly.map(function (p) { return p[1]; });
+    var a0 = Math.min.apply(0, la), a1 = Math.max.apply(0, la), o0 = Math.min.apply(0, lo), o1 = Math.max.apply(0, lo);
+    var hM = (a1 - a0) * 111000, wM = (o1 - o0) * 88000, step = Math.max(120, Math.sqrt(hM * wM / 110)), pts = poly.slice();
+    for (var y = a0 + step / 222000; y < a1; y += step / 111000) for (var x = o0 + step / 176000; x < o1; x += step / 88000) if (inside([y, x], poly)) pts.push([y, x]);
+    pts.push([la.reduce(function (s, v) { return s + v; }, 0) / la.length, lo.reduce(function (s, v) { return s + v; }, 0) / lo.length]);
+    return pts.slice(0, 160);
+  }
+  function render() {
+    list.textContent = "";
+    var all = {};
+    sels.forEach(function (s, i) {
+      var box = document.createElement("div"); box.className = "pk-sel";
+      var h = document.createElement("h3"); h.appendChild(document.createTextNode("영역 " + (i + 1) + " · 동 " + s.dongs.length + "곳"));
+      var del = document.createElement("button"); del.className = "mini"; del.type = "button"; del.textContent = "이 영역 지우기";
+      del.addEventListener("click", function () { sels.splice(i, 1); save(); render(); redraw(); }); h.appendChild(del); box.appendChild(h);
+      var ul = document.createElement("ul"); ul.className = "facts"; s.dongs.forEach(function (d) { var li = document.createElement("li"); li.textContent = d; ul.appendChild(li); all[d] = 1; }); box.appendChild(ul);
+      list.appendChild(box);
+    });
+    var names = Object.keys(all).sort();
+    out.value = sels.length ? "[새 구역 요청]\n동: " + names.join(", ") + "\n영역 좌표: " + JSON.stringify(sels.map(function (s) { return s.poly.map(function (p) { return [+p[0].toFixed(5), +p[1].toFixed(5)]; }); })) : "";
+    state.textContent = sels.length ? "영역 " + sels.length + "개 · 동 " + names.length + "곳" : "";
+  }
+  var redraw = function () {};
+  $("#pkCopy").addEventListener("click", function () {
+    if (!out.value) { msg.textContent = "먼저 영역을 그려주세요."; return; }
+    var done = function () { $("#pkCopy").textContent = "복사됨"; setTimeout(function () { $("#pkCopy").textContent = "복사"; }, 1500); };
+    try { navigator.clipboard.writeText(out.value).then(done, function () { out.select(); }); } catch (e) { out.select(); }
+  });
+  $("#pkClear").addEventListener("click", function () { sels = []; save(); render(); redraw(); });
+  render();
+  if (!key) { msg.textContent = "지도 키가 없어서 지도를 띄울 수 없어요."; return; }
+  var s = document.createElement("script");
+  s.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + encodeURIComponent(key) + "&libraries=services&autoload=false";
+  s.onerror = function () { msg.textContent = "지도를 불러오지 못했어요. 인터넷 연결을 확인해 주세요."; };
+  s.onload = function () { kakao.maps.load(function () {
+    var map = new kakao.maps.Map($("#pkMap"), { center: new kakao.maps.LatLng(37.5565, 126.99), level: 8 });
+    try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {}
+    var geo = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK;
+    var drawing = false, pts = [], temp = [], kept = [], lastKey = "", lastAt = 0;
+    function poly(path, col, fill) { return new kakao.maps.Polygon({ path: path.map(function (p) { return new kakao.maps.LatLng(p[0], p[1]); }), strokeWeight: 3, strokeColor: col, strokeOpacity: 0.95, fillColor: fill, fillOpacity: 0.28 }); }
+    function clearTemp() { temp.forEach(function (o) { o.setMap(null); }); temp = []; }
+    function paint() {
+      clearTemp();
+      pts.forEach(function (p) { var v = document.createElement("span"); v.className = "vx"; var o = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(p[0], p[1]), content: v, xAnchor: 0.5, yAnchor: 0.5 }); o.setMap(map); temp.push(o); });
+      if (pts.length >= 2) { var sh = poly(pathOf(pts), "#B4541A", "#F2A65A"); sh.setMap(map); kakao.maps.event.addListener(sh, "click", click); temp.push(sh); }
+    }
+    redraw = function () {
+      kept.forEach(function (o) { o.setMap(null); }); kept = [];
+      sels.forEach(function (s, i) {
+        var sh = poly(s.poly, "#0B6E5F", "#4FC3AE"); sh.setMap(map); kakao.maps.event.addListener(sh, "click", click); kept.push(sh);
+        var c = s.poly.reduce(function (a, p) { return [a[0] + p[0] / s.poly.length, a[1] + p[1] / s.poly.length]; }, [0, 0]);
+        var lab = document.createElement("span"); lab.className = "zlabel"; lab.style.color = "#0B6E5F"; lab.textContent = "영역 " + (i + 1);
+        var lo = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(c[0], c[1]), content: lab, xAnchor: 0.5, yAnchor: 0.5 }); lo.setMap(map); kept.push(lo);
+      });
+    };
+    function ui() {
+      $("#pkStart").hidden = drawing; $("#pkUndo").hidden = $("#pkOk").hidden = $("#pkCancel").hidden = !drawing;
+      $("#pkOk").disabled = pts.length < 2; $("#pkUndo").disabled = !pts.length;
+      $("#pkMap").classList.toggle("drawing", drawing);
+      if (drawing) msg.textContent = pts.length < 2 ? "지도를 눌러 꼭짓점을 찍으세요." : (pts.length === 2 ? "네모로 잡혔어요. 더 찍으면 모양이 바뀌어요. 다 됐으면 완료." : pts.length + "곳을 이은 모양이에요. 다 됐으면 완료.");
+    }
+    function click(e) {
+      if (!drawing || !e || !e.latLng) return;
+      var p = [e.latLng.getLat(), e.latLng.getLng()], k = p[0].toFixed(7) + "," + p[1].toFixed(7), now = Date.now();
+      if (k === lastKey && now - lastAt < 400) return; lastKey = k; lastAt = now;
+      pts.push(p); paint(); ui();
+    }
+    kakao.maps.event.addListener(map, "click", click);
+    $("#pkStart").addEventListener("click", function () { drawing = true; pts = []; lastKey = ""; ui(); });
+    $("#pkUndo").addEventListener("click", function () { pts.pop(); lastKey = ""; paint(); ui(); });
+    $("#pkCancel").addEventListener("click", function () { drawing = false; pts = []; clearTemp(); ui(); msg.textContent = ""; });
+    $("#pkOk").addEventListener("click", function () {
+      if (pts.length < 2) return;
+      var p = pathOf(pts), sm = samples(p), found = {}, left = sm.length;
+      drawing = false; pts = []; clearTemp(); ui(); msg.textContent = "이 영역에 어떤 동이 들어가는지 찾는 중이에요…";
+      sm.forEach(function (q) {
+        geo.coord2RegionCode(q[1], q[0], function (r, st) {
+          if (st === OK) r.forEach(function (x) { if (x.region_type === "B" && /서울/.test(x.region_1depth_name)) found[x.region_2depth_name + " " + x.region_3depth_name] = 1; });
+          if (--left === 0) {
+            var d = Object.keys(found).sort();
+            if (!d.length) { msg.textContent = "서울 안에서 동을 찾지 못했어요. 다시 그려주세요."; return; }
+            sels.push({ poly: p, dongs: d }); save(); render(); redraw();
+            msg.textContent = "영역 " + sels.length + "을 넣었어요. 더 그리거나, 아래 내용을 복사해서 보내주세요.";
+          }
+        });
+      });
+    });
+    redraw(); ui(); msg.textContent = sels.length ? "전에 그린 영역이 남아 있어요. 더 그리거나 아래 내용을 복사해서 보내주세요." : msg.textContent;
+  }); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
