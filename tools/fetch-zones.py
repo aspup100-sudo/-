@@ -38,8 +38,19 @@ req = urllib.request.Request(DL, data=urllib.parse.urlencode(data).encode(), hea
 blob = urllib.request.urlopen(req, timeout=300).read()
 if blob[:2] != b"PK": sys.exit("zip이 아니에요: " + blob[:200].decode("utf-8", "replace"))
 os.makedirs(out, exist_ok=True)
-zipfile.ZipFile(io.BytesIO(blob)).extractall(out)
-shp = [r for r, _, fs in os.walk(out) for f in fs if f.upper().startswith("UPIS_C_UQ120") and f.lower().endswith(".shp")]
-if not shp: sys.exit("zip 안에 UPIS_C_UQ120 shp가 없어요: " + str([f for _, _, fs in os.walk(out) for f in fs][:20]))
+# 폴더 구조와 상관없이 파일을 한 폴더에 모아요 (build-zones.py가 shp와 코드표 xlsx를 같은 폴더에서 찾아요)
+z = zipfile.ZipFile(io.BytesIO(blob)); names = []
+for i in z.infolist():
+    if i.is_dir(): continue
+    fn = i.filename
+    if not (i.flag_bits & 0x800):
+        try: fn = fn.encode("cp437").decode("cp949")
+        except Exception: pass
+    fn = os.path.basename(fn.replace("\\", "/")); names.append(fn)
+    open(os.path.join(out, fn), "wb").write(z.read(i))
+print("zip 안:", names)
+if not any(n.upper().startswith("UPIS_C_UQ120") and n.lower().endswith(".shp") for n in names): sys.exit("zip 안에 UPIS_C_UQ120 shp가 없어요")
+if not any(n.lower().endswith(".xlsx") for n in names): sys.exit("zip 안에 코드표 xlsx가 없어요")
+shp = [out]
 print("받음:", name, len(blob), "바이트")
 print("NEW", shp[0], newest)
