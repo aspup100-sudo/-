@@ -280,7 +280,48 @@
       }
       var g = S.gu.filter(function (x) { return x.code === cur; })[0]; if (!g) return;
       var grp = el("div", "grp"); grp.appendChild(el("span", null, g.name + " · 중개업소 " + g.n.toLocaleString("ko-KR") + "곳")); list.appendChild(grp);
+      var dm = el("div", "gumap dongmap"); dm.hidden = true; list.appendChild(dm); dongMap(g, dm);
       var bx = el("div", "chips"); g.dongs.forEach(function (dn) { bx.appendChild(dongLink(g, dn)); }); list.appendChild(bx);
+    }
+    // 동 약도: 구를 고르면 그 구의 동 모양이 나와요. 한 번 누르면 이름과 중개업소 수가 보이고, 한 번 더 누르거나 '보기'를 누르면 그 동으로 가요.
+    // 자료(data/dongmap/<구코드>.json)를 못 받으면 약도 없이 아래 동 버튼만 써요.
+    var dmCache = {};
+    function dongMap(g, box) {
+      var got = dmCache[g.code] || (dmCache[g.code] = fetch("./data/dongmap/" + g.code + ".json").then(function (r) { if (!r.ok) throw r; return r.json(); }));
+      got.then(function (M) {
+        if (!box.isConnected) return;
+        var NS = "http://www.w3.org/2000/svg", sv = function (t, a) { var e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); }); return e; };
+        var cnt = {}; g.dongs.forEach(function (dn) { cnt[dn[0]] = dn; });
+        var svg = sv("svg", { viewBox: "0 0 " + M.w + " " + M.h, role: "group", "aria-label": g.name + " 약도에서 동 고르기" }), shapes = sv("g"), labels = sv("g", { "aria-hidden": "true" });
+        var cap = el("div", "dm-cap"), capT = el("span", null, "동 모양을 누르면 이름과 중개업소 수가 나와요."), capA = el("a", "lkbtn", "보기 ›");
+        capA.hidden = true; cap.appendChild(capT); cap.appendChild(capA);
+        var sel = "";
+        function choose(name, p) {
+          var dn = cnt[name], href = dongLink(g, dn).href;
+          if (sel === name) { location.href = href; return; }
+          sel = name;
+          shapes.querySelectorAll(".gm").forEach(function (o) { o.setAttribute("aria-pressed", String(o === p)); });
+          labels.querySelectorAll("text").forEach(function (t) { t.classList.toggle("on", t.dataset.n === name); });
+          capT.textContent = name + " · 중개업소 " + dn[1] + "곳"; capA.href = href; capA.hidden = false;
+        }
+        Object.keys(M.dong).forEach(function (name) {
+          var m = M.dong[name], dn = cnt[name];
+          var p = sv("path", { d: m.d, "class": dn ? "gm" : "gm none" });
+          if (dn) {
+            p.setAttribute("tabindex", "0"); p.setAttribute("role", "button"); p.setAttribute("aria-pressed", "false");
+            p.setAttribute("aria-label", name + " 중개업소 " + dn[1] + "곳");
+            p.addEventListener("click", function () { choose(name, p); });
+            p.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(name, p); } });
+          }
+          var tt = sv("title"); tt.textContent = name + (dn ? " · 중개업소 " + dn[1] + "곳" : " · 등록된 중개업소 없음"); p.appendChild(tt);
+          shapes.appendChild(p);
+          // 글자가 모양 안에 들어갈 만한 동만 이름을 써요. 작은 동은 눌러서 확인해요.
+          var fs = Math.min(26, m.r * 2.5 / (name.length * 0.92), m.r * 1.6);
+          if (fs >= 18) { var t = sv("text", { x: m.c[0], y: m.c[1], "class": "gm-l dm-l" + (dn ? "" : " none"), "data-n": name, style: "font-size:" + Math.round(fs) + "px" }); t.textContent = name; labels.appendChild(t); }
+        });
+        svg.appendChild(shapes); svg.appendChild(labels);
+        box.appendChild(svg); box.appendChild(cap); box.hidden = false;
+      }, function () {});
     }
     function pick(code) { cur = cur === code ? "" : code; search.value = ""; try { localStorage.setItem("cs-gu", cur); } catch (e) {} show(); }
     S.gu.forEach(function (g) {

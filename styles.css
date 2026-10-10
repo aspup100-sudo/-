@@ -251,3 +251,12 @@ a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-w
 .gm-l{font-size:27px;font-weight:600;fill:var(--ink);text-anchor:middle;dominant-baseline:central;pointer-events:none;paint-order:stroke;stroke:var(--surface);stroke-width:5;stroke-linejoin:round}
 .gm-l.on{fill:var(--bg);stroke:var(--accent)}
 @media (prefers-reduced-motion:no-preference){.gm{transition:fill .15s}}
+.dongmap{margin:4px auto 0}
+.dongmap .gm{stroke-width:1.6}
+.dongmap .gm:focus-visible{stroke-width:4}
+.gm.none{fill:var(--bg);cursor:default}
+@media (hover:hover){.gm.none:hover{fill:var(--bg)}}
+.dm-l{stroke-width:4}
+.dm-l.none{fill:var(--muted)}
+.dm-cap{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-top:6px;min-height:28px}
+.dm-cap span{font-variant-numeric:tabular-nums}
