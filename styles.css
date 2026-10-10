@@ -275,6 +275,6 @@ a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-w
 .gu-title{margin:0 0 2px}
 
 /* 지도 글씨 줄이기: 카카오 바탕 그림(가게·건물 이름 포함)을 흐리게, 역과 구역 이름은 위에 또렷하게 */
-.kmap.quiet img[src*="daumcdn.net/map_"]{opacity:.42;filter:grayscale(1)}
+.kmap.quiet img.ktile,.kmap.quiet img[src*="daumcdn.net/map_"],.kmap.quiet img[src*="mts.daumcdn.net"],.kmap.quiet img[src*="/tile/"]{opacity:.42;filter:grayscale(1)}
 .stn{display:inline-block;font:700 11px/1.2 system-ui,sans-serif;color:#fff;background:#1F3A5F;padding:2px 6px;border-radius:9px;white-space:nowrap;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.25)}
 #quietBtn{margin:4px 0 0}

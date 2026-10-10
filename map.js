@@ -459,6 +459,13 @@
       if (on) stations(kakao);
     }
     if (btn) btn.addEventListener("click", function () { set(!on); });
+    // 바탕 그림 조각(256×256 그림)에 표시를 달아 흐리게 해요. 카카오가 그림 주소를 바꿔도 크기로 알아봐요.
+    function markTiles() { box.querySelectorAll("img:not(.ktile)").forEach(function (im) {
+      if (im.width === 256 || im.naturalWidth === 256 || im.style.width === "256px") im.classList.add("ktile");
+      else if (!im.complete && !im._kw) { im._kw = 1; im.addEventListener("load", function () { if (im.naturalWidth === 256) im.classList.add("ktile"); }); }
+    }); }
+    if (window.MutationObserver) new MutationObserver(function () { markTiles(); }).observe(box, { childList: true, subtree: true });
+    kakao.maps.event.addListener(map, "tilesloaded", markTiles);
     kakao.maps.event.addListener(map, "idle", function () { clearTimeout(stnTimer); stnTimer = setTimeout(function () { if (on) stations(kakao); }, 500); });
     kakao.maps.event.addListener(map, "zoom_changed", function () { var v = on && map.getLevel() <= 6; stnOv.forEach(function (o) { o.setMap(v ? map : null); }); });
     set(on);
