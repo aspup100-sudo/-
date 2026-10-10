@@ -8,7 +8,7 @@ img{max-width:100%}
   --bg:#F2F5F3; --surface:#FFFFFF; --ink:#15211E; --muted:#5A6A65; --line:#D4DCD8;
   --accent:#0B6E5F; --accent-soft:#DDEFEA; --first:#B4541A; --first-soft:#F8E7D8;
   --call:#2460A7; --call-soft:#DEE9F7; --road:#C3CDC8; --zone:#0B6E5F;
-  --l1:#0052A4; --l4:#00A5DE; --l6:#CD7C2F;
+  --l1:#0052A4; --l4:#00A5DE; --l6:#CD7C2F; --river:#BCDDF0;
   --display:"Black Han Sans","IBM Plex Sans KR",system-ui,sans-serif;
   --body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
 }
@@ -17,14 +17,14 @@ img{max-width:100%}
     --bg:#0F1514; --surface:#18211F; --ink:#E6ECEA; --muted:#93A29E; --line:#2B3734;
     --accent:#4FC3AE; --accent-soft:#17332E; --first:#E59A5A; --first-soft:#3A2717;
     --call:#7FB0EA; --call-soft:#1A2A40; --road:#34423E; --zone:#4FC3AE;
-    --l1:#5B9BE0; --l4:#4CC4EC; --l6:#E09A55; color-scheme:dark;
+    --l1:#5B9BE0; --l4:#4CC4EC; --l6:#E09A55; --river:#27506A; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0F1514; --surface:#18211F; --ink:#E6ECEA; --muted:#93A29E; --line:#2B3734;
   --accent:#4FC3AE; --accent-soft:#17332E; --first:#E59A5A; --first-soft:#3A2717;
   --call:#7FB0EA; --call-soft:#1A2A40; --road:#34423E; --zone:#4FC3AE;
-  --l1:#5B9BE0; --l4:#4CC4EC; --l6:#E09A55; color-scheme:dark;
+  --l1:#5B9BE0; --l4:#4CC4EC; --l6:#E09A55; --river:#27506A; color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
@@ -239,3 +239,15 @@ a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-w
 #home .blk+.blk{margin-top:8px}
 #dongList .chips{gap:6px}
 .bk{content-visibility:auto;contain-intrinsic-size:auto 250px}
+
+/* 첫 화면: 서울 약도에서 구 고르기 */
+.gumap{max-width:560px;margin:0 auto;width:100%}
+.gumap svg{display:block;width:100%;height:auto;overflow:visible}
+.gm{fill:var(--surface);stroke:var(--muted);stroke-opacity:.45;stroke-width:2.5;stroke-linejoin:round;cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+@media (hover:hover){.gm:hover{fill:var(--accent-soft)}}
+.gm:focus-visible{stroke:var(--accent);stroke-width:5}
+.gm[aria-pressed="true"],.gm[aria-pressed="true"]:hover{fill:var(--accent);stroke:var(--accent);stroke-opacity:1}
+.gm-river{fill:none;stroke:var(--river);stroke-width:16;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.gm-l{font-size:27px;font-weight:600;fill:var(--ink);text-anchor:middle;dominant-baseline:central;pointer-events:none;paint-order:stroke;stroke:var(--surface);stroke-width:5;stroke-linejoin:round}
+.gm-l.on{fill:var(--bg);stroke:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.gm{transition:fill .15s}}

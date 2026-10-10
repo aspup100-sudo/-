@@ -258,7 +258,7 @@
     var S = window.CS_SEOUL; if (!S || !S.gu) return;
     $("#seoulBlk").hidden = false;
     var d = (S.updated || "").split("-");
-    $("#seoulHint").textContent = "서울시에 등록된 중개업소 " + S.total.toLocaleString("ko-KR") + "곳이에요" + (d.length === 3 ? " (" + (+d[1]) + "월 " + (+d[2]) + "일 기준)" : "") + ". 구를 누르고 동을 고르면 그 동의 중개업소가 지도와 함께 나와요.";
+    $("#seoulHint").textContent = "서울시에 등록된 중개업소 " + S.total.toLocaleString("ko-KR") + "곳이에요" + (d.length === 3 ? " (" + (+d[1]) + "월 " + (+d[2]) + "일 기준)" : "") + ". " + (window.CS_GUMAP ? "약도에서 구를 누르고" : "구를 누르고") + " 동을 고르면 그 동의 중개업소가 지도와 함께 나와요.";
     var chips = $("#guChips"), list = $("#dongList"), search = $("#dongSearch"), cur = "";
     try { cur = localStorage.getItem("cs-gu") || ""; } catch (e) {}
     var zoned = {}; AREAS.order.forEach(function (id) { var a = AREAS[id]; if (a && a.data && a.dong) zoned[a.dong] = id; }); // 구역 정보까지 정리한 동
@@ -271,6 +271,7 @@
     function show() {
       var q = search.value.trim(); list.textContent = "";
       chips.querySelectorAll(".chip").forEach(function (c) { c.setAttribute("aria-pressed", String(!q && c.dataset.code === cur)); });
+      document.querySelectorAll("#guMap [data-code]").forEach(function (c) { var on = !q && c.dataset.code === cur; if (c.tagName === "text") c.classList.toggle("on", on); else c.setAttribute("aria-pressed", String(on)); });
       if (q) {
         var box = el("div", "chips"), n = 0;
         S.gu.forEach(function (g) { g.dongs.forEach(function (dn) { if (dn[0].indexOf(q) >= 0 && n < 60) { var a = dongLink(g, dn); a.textContent = g.name + " " + dn[0] + " " + dn[1]; box.appendChild(a); n++; } }); });
@@ -281,11 +282,28 @@
       var grp = el("div", "grp"); grp.appendChild(el("span", null, g.name + " · 중개업소 " + g.n.toLocaleString("ko-KR") + "곳")); list.appendChild(grp);
       var bx = el("div", "chips"); g.dongs.forEach(function (dn) { bx.appendChild(dongLink(g, dn)); }); list.appendChild(bx);
     }
+    function pick(code) { cur = cur === code ? "" : code; search.value = ""; try { localStorage.setItem("cs-gu", cur); } catch (e) {} show(); }
     S.gu.forEach(function (g) {
       var c = el("button", "chip", g.name); c.type = "button"; c.dataset.code = g.code; c.setAttribute("aria-pressed", "false");
-      c.addEventListener("click", function () { cur = cur === g.code ? "" : g.code; search.value = ""; try { localStorage.setItem("cs-gu", cur); } catch (e) {} show(); });
+      c.addEventListener("click", function () { pick(g.code); });
       chips.appendChild(c);
     });
+    // 약도: 구 모양을 누르면 그 구의 동 목록이 아래에 나와요. 약도 자료(seoulmap.js)가 없으면 위의 버튼을 그대로 써요.
+    var GM = window.CS_GUMAP;
+    if (GM && GM.gu) {
+      var NS = "http://www.w3.org/2000/svg", sv = function (t, a) { var e = document.createElementNS(NS, t); Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); }); return e; };
+      var svg = sv("svg", { viewBox: "0 0 " + GM.w + " " + GM.h, role: "group", "aria-label": "서울 약도에서 구 고르기" }), shapes = sv("g"), labels = sv("g", { "aria-hidden": "true" });
+      S.gu.forEach(function (g) {
+        var m = GM.gu[g.code]; if (!m) return;
+        var p = sv("path", { d: m.d, "class": "gm", "data-code": g.code, tabindex: "0", role: "button", "aria-pressed": "false", "aria-label": g.name + " 중개업소 " + g.n.toLocaleString("ko-KR") + "곳" });
+        p.addEventListener("click", function () { pick(g.code); });
+        p.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(g.code); } });
+        shapes.appendChild(p);
+        var t = sv("text", { x: m.c[0], y: m.c[1], "class": "gm-l", "data-code": g.code }); t.textContent = g.name; labels.appendChild(t);
+      });
+      svg.appendChild(shapes); if (GM.river) svg.appendChild(sv("path", { d: GM.river, "class": "gm-river" })); svg.appendChild(labels);
+      $("#guMap").appendChild(svg); $("#guMap").hidden = false; chips.hidden = true;
+    }
     search.addEventListener("input", show);
     show();
   }
