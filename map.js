@@ -61,6 +61,7 @@
 
   // 영역으로 고르기: 지도를 눌러 꼭짓점을 찍으면 그 안의 중개업소만 목록에 남아요. 2곳이면 네모, 3곳부터는 찍은 모양.
   var wired = false, drawing = false, pts = [], shape = null, marks = [], active = false;
+  var pendingPick = null, startDraw = null; // 동선 탭의 "영역 그려 한꺼번에 담기"가 쓰는 것
   function pathOf(p) { return p.length === 2 ? [[p[0][0], p[0][1]], [p[0][0], p[1][1]], [p[1][0], p[1][1]], [p[1][0], p[0][1]]] : p; }
   function inside(pt, poly) {
     var c = false;
@@ -74,25 +75,22 @@
   // 구역 표시: 정확한 경계선 자료가 없어서, 구역 안 번지 몇 곳의 가운데에 구역 면적만 한 옅은 원을 그려요.
   var onMapClick = null;
   function zoneColor(kind) { return /도심/.test(kind) ? "#7A4FB5" : /모아타운/.test(kind) ? "#2460A7" : "#0B6E5F"; }
-  function drawZones(kakao) {
+  var zoneInfo = [], zoneWaiters = [], zonesReady = null;
+  window.CS_MAP.zones = function () { return zoneInfo; };
+  window.CS_MAP.onZones = function (f) { zoneWaiters.push(f); if (zoneInfo.length) f(); };
+  function computeZones(kakao) { // 지도가 안 떠 있어도 구역 중심은 미리 구해 둬요 (동선 탭에서 구역 주변 담기에 써요)
+    if (zonesReady) return zonesReady;
     var list = [];
     (area.zones || []).forEach(function (z) {
       if (z.parts) z.parts.forEach(function (p) { list.push({ short: p.short, kind: p.kind || z.kind.split("·")[0], soft: true, m2: p.m2, at: p.at }); });
       else if (z.at && z.m2) list.push(z);
     });
-    if (!list.length) return;
     var g = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK;
     function one(addr) {
       var k = "z:" + addr; if (cache.p[k]) return Promise.resolve(cache.p[k]);
       return new Promise(function (res) { g.addressSearch(area.gu + " " + addr, function (r, st) { if (st === OK && r[0]) { cache.p[k] = [+r[0].y, +r[0].x]; res(cache.p[k]); } else res(null); }); });
     }
-    var kinds = {}, anySoft = false, zoneLabels = [], labelsOn = map.getLevel() <= 6;
-    // 멀리서 보면 구역 이름표가 겹쳐서, 어느 정도 확대했을 때만 이름표를 보여요.
-    kakao.maps.event.addListener(map, "zoom_changed", function () {
-      var on = map.getLevel() <= 6; if (on === labelsOn) return; labelsOn = on;
-      zoneLabels.forEach(function (o) { o.setMap(on ? map : null); });
-    });
-    Promise.all(list.map(function (z) {
+    zonesReady = Promise.all(list.map(function (z) {
       return Promise.all(z.at.map(one)).then(function (pts) {
         pts = pts.filter(Boolean); if (!pts.length) return;
         var med = function (i) { var v = pts.map(function (p) { return p[i]; }).sort(function (a, b) { return a - b; }); return v[Math.floor(v.length / 2)]; };
@@ -100,20 +98,32 @@
         var near = pts.filter(function (p) { return Math.abs(p[0] - m[0]) * 111000 < Math.max(350, 2.5 * r) && Math.abs(p[1] - m[1]) * 88000 < Math.max(350, 2.5 * r); });
         if (!near.length) near = pts;
         var c = [near.reduce(function (a, p) { return a + p[0]; }, 0) / near.length, near.reduce(function (a, p) { return a + p[1]; }, 0) / near.length];
-        var col = zoneColor(z.kind || ""), ll = new kakao.maps.LatLng(c[0], c[1]);
-        var circle = new kakao.maps.Circle({ center: ll, radius: r, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.75, strokeStyle: z.soft ? "shortdash" : "solid", fillColor: col, fillOpacity: 0.13 });
+        zoneInfo.push({ short: z.short || z.name, kind: z.kind || "", soft: !!z.soft, c: c, r: r });
+      });
+    })).then(function () { saveCache(); zoneWaiters.forEach(function (f) { try { f(); } catch (e) {} }); });
+    return zonesReady;
+  }
+  function drawZones(kakao) {
+    var kinds = {}, anySoft = false, zoneLabels = [], labelsOn = map.getLevel() <= 6;
+    // 멀리서 보면 구역 이름표가 겹쳐서, 어느 정도 확대했을 때만 이름표를 보여요.
+    kakao.maps.event.addListener(map, "zoom_changed", function () {
+      var on = map.getLevel() <= 6; if (on === labelsOn) return; labelsOn = on;
+      zoneLabels.forEach(function (o) { o.setMap(on ? map : null); });
+    });
+    computeZones(kakao).then(function () {
+      zoneInfo.forEach(function (z) {
+        var col = zoneColor(z.kind), ll = new kakao.maps.LatLng(z.c[0], z.c[1]);
+        var circle = new kakao.maps.Circle({ center: ll, radius: z.r, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.75, strokeStyle: z.soft ? "shortdash" : "solid", fillColor: col, fillOpacity: 0.13 });
         circle.setMap(map);
         kakao.maps.event.addListener(circle, "click", function (e) { if (onMapClick) onMapClick(e); });
-        var lab = document.createElement("span"); lab.className = "zlabel"; lab.textContent = z.short || z.name; lab.style.color = col;
+        var lab = document.createElement("span"); lab.className = "zlabel"; lab.textContent = z.short; lab.style.color = col;
         var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }); zoneLabels.push(lo);
-        if (map.getLevel() <= 6) lo.setMap(map);
+        if (labelsOn) lo.setMap(map);
         kinds[col] = /도심/.test(z.kind) ? "도심공공" : /모아타운/.test(z.kind) ? "모아타운" : "신통기획 재개발"; if (z.soft) anySoft = true;
       });
-    })).then(function () {
-      saveCache();
       var leg = $("#zoneLegend"); if (!Object.keys(kinds).length) return;
       leg.textContent = "";
-      Object.keys(kinds).forEach(function (col) { var s = document.createElement("span"); s.className = "zl"; var i = document.createElement("i"); i.style.background = col; s.appendChild(i); s.appendChild(document.createTextNode(kinds[col])); leg.appendChild(s); });
+      Object.keys(kinds).forEach(function (col) { var sp = document.createElement("span"); sp.className = "zl"; var ic = document.createElement("i"); ic.style.background = col; sp.appendChild(ic); sp.appendChild(document.createTextNode(kinds[col])); leg.appendChild(sp); });
       leg.appendChild(document.createTextNode((anySoft ? "점선은 후보지로 뽑히기 전 단계. " : "") + "원은 구역의 대략적인 위치와 크기예요. 실제 경계선이 아니에요."));
       leg.hidden = false;
     });
@@ -137,11 +147,13 @@
       box.classList.toggle("drawing", drawing);
       // 그리는 동안에는 점(과 카카오가 씌운 겉상자)이 클릭을 가로채지 않게 해서, 점 위를 눌러도 꼭짓점이 찍히게 해요.
       Object.keys(dots).forEach(function (id) { var w = dots[id].el.parentNode; if (w && w.style) w.style.pointerEvents = drawing ? "none" : ""; });
-      if (drawing) msg.textContent = pts.length < 2 ? "지도를 눌러 꼭짓점을 찍으세요. 2곳이면 네모, 3곳부터는 찍은 모양이에요." : (pts.length === 2 ? "네모로 잡혔어요. 더 찍으면 모양이 바뀌어요." : pts.length + "곳을 이은 모양이에요.");
+      if (drawing && pendingPick && pts.length >= 2) msg.textContent = "완료를 누르면 이 안의 중개업소가 모두 동선에 담겨요.";
+      else if (drawing) msg.textContent = pts.length < 2 ? "지도를 눌러 꼭짓점을 찍으세요. 2곳이면 네모, 3곳부터는 찍은 모양이에요." : (pts.length === 2 ? "네모로 잡혔어요. 더 찍으면 모양이 바뀌어요." : pts.length + "곳을 이은 모양이에요.");
       else if (active) { var n = A.B.filter(function (b) { return A.visible(b); }).length; msg.textContent = n ? "영역 안 " + n + "곳만 보는 중" : "영역 안에 보이는 중개업소가 없어요. 영역을 해제하고 다시 그려보세요."; }
       else msg.textContent = "";
     }
-    function off() { active = false; drawing = false; pts = []; clearShape(); ui(); }
+    function off() { active = false; drawing = false; pts = []; pendingPick = null; clearShape(); ui(); }
+    startDraw = function () { if (active) { off(); A.setRegion(null); } drawing = true; pts = []; lastKey = ""; ui(); };
     var lastAt = 0, lastKey = "";
     onMapClick = function (e) { // 지도, 구역 원, 그리던 도형 어디를 눌러도 꼭짓점이 찍히게 (같은 클릭이 두 번 들어오면 한 번만)
       if (!drawing || !e || !e.latLng) return;
@@ -158,7 +170,12 @@
     cancel.addEventListener("click", off);
     ok.addEventListener("click", function () {
       if (pts.length < 2) return;
-      var poly = pathOf(pts); drawing = false; active = true;
+      var poly = pathOf(pts);
+      if (pendingPick) { // 걸러 보기 대신, 안에 있는 곳을 돌려주고 끝
+        var cb = pendingPick, ids = A.B.filter(function (b) { var ll = cache.p[b[0]]; return !!ll && inside(ll, poly); }).map(function (b) { return b[0]; });
+        off(); cb(ids); return;
+      }
+      drawing = false; active = true;
       marks.forEach(function (m) { m.setMap(null); }); marks = [];
       A.setRegion(function (id) { var ll = cache.p[id]; return !!ll && inside(ll, poly); });
       ui();
@@ -198,7 +215,17 @@
     $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : ""));
   }
 
+  window.CS_MAP.pickByRegion = function (cb) { // 지도 탭으로 가서 영역을 그리게 하고, 완료하면 안에 있는 중개업소 id들을 cb로 넘겨요
+    sdk.then(function () {
+      A.showTab("brokers");
+      if (!startDraw) return;
+      startDraw(); pendingPick = cb;
+      var box = $("#kmapBox"); if (box && box.scrollIntoView) { window.scrollTo(0, 0); }
+      $("#regionMsg").textContent = "지도를 눌러 꼭짓점을 찍으세요. 완료를 누르면 그 안의 중개업소가 모두 동선에 담겨요.";
+    });
+  };
   sdk.then(function (kakao) {
+    computeZones(kakao);
     var redraw = function () { if (A.tab() === "brokers") draw(kakao); };
     redraw();
     A.onChange(redraw);

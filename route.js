@@ -17,6 +17,10 @@
   function order(pts, fixed) {
     var best = null;
     var starts = fixed ? [-1] : pts.map(function (_, i) { return i; });
+    if (!fixed && pts.length > 25) { // 많을 때는 모든 출발점을 다 해보지 않고, 동서남북 끝에 있는 곳에서만 시작해 봐요
+      var ext = function (i, sign) { var b = 0; pts.forEach(function (p, k) { if (sign * p.ll[i] > sign * pts[b].ll[i]) b = k; }); return b; };
+      starts = [ext(0, 1), ext(0, -1), ext(1, 1), ext(1, -1)].filter(function (v, i, a) { return a.indexOf(v) === i; });
+    }
     starts.forEach(function (s) {
       var left = pts.map(function (_, i) { return i; }), seq = [], cur = fixed;
       if (s >= 0) { seq.push(s); left.splice(left.indexOf(s), 1); cur = pts[s].ll; }
@@ -75,6 +79,7 @@
     var my = ++token;
     var all = A.picks().map(function (b) { return { id: b[0], name: b[1], addr: b[2], ll: M ? M.geo(b[0]) : null }; });
     list.textContent = "";
+    btnClear.hidden = !all.length;
     if (!all.length) { sum.textContent = "아직 담은 곳이 없어요. 중개업소 탭에서 가고 싶은 곳의 '동선 담기'를 눌러보세요."; $("#rmapBox").hidden = true; return; }
     var pts = all.filter(function (p) { return p.ll; }), lost = all.filter(function (p) { return !p.ll; });
     if (!pts.length) {
@@ -116,6 +121,32 @@
       rmap.relayout(); rmap.setBounds(b, 30, 30, 30, 30);
     }).catch(function () { $("#rmapBox").hidden = true; });
   }
+
+  // 한꺼번에 담기: 지도에서 영역을 그리거나, 재개발 구역 주변을 고르거나
+  var note = $("#rtNote"), selZone = $("#rtZone"), btnClear = $("#rtClear");
+  function tell(t) { note.textContent = t; }
+  $("#rtDraw").addEventListener("click", function () {
+    if (!M || !M.pickByRegion) { tell("지도를 불러오지 못해서 영역을 그릴 수 없어요."); return; }
+    M.pickByRegion(function (ids) {
+      var n = A.setPicks(ids, true); A.showTab("route");
+      tell(ids.length ? "영역 안 " + ids.length + "곳" + (n < ids.length ? " (새로 담은 곳 " + n + ")" : "") + "을 동선에 담았어요." : "그 영역 안에는 중개업소가 없었어요.");
+    });
+  });
+  function nearZone(z) { return A.B.filter(function (b) { var ll = M.geo(b[0]); return ll && dist(ll, z.c) <= z.r + 100; }).map(function (b) { return b[0]; }); }
+  function zoneOptions() {
+    if (!M || !M.zones) return; var zs = M.zones(); if (!zs.length) return;
+    while (selZone.options.length > 1) selZone.remove(1);
+    zs.forEach(function (z, i) { var n = nearZone(z).length; if (!n) return; var o = el("option", null, z.short + " 주변 " + n + "곳"); o.value = String(i); selZone.appendChild(o); });
+    selZone.hidden = selZone.options.length < 2;
+  }
+  selZone.addEventListener("change", function () {
+    var z = M.zones()[+selZone.value]; if (selZone.value === "" || !z) return;
+    var ids = nearZone(z), n = A.setPicks(ids, true); selZone.value = "";
+    tell(z.short + " 주변 " + ids.length + "곳" + (n < ids.length ? " (새로 담은 곳 " + n + ")" : "") + "을 담았어요. 구역 원에서 100m 안에 있는 곳이에요.");
+  });
+  btnClear.addEventListener("click", function () { var n = A.setPicks(A.picks().map(function (b) { return b[0]; }), false); tell(n + "곳을 모두 뺐어요."); });
+  if (M && M.onZones) M.onZones(zoneOptions);
+  if (M) M.onGeo(zoneOptions);
 
   selStart.addEventListener("change", function () { try { localStorage.setItem("cs-rt-start-" + area.id, selStart.value); } catch (e) {} render(); });
   selDwell.addEventListener("change", function () { try { localStorage.setItem("cs-rt-dwell", selDwell.value); } catch (e) {} render(); });

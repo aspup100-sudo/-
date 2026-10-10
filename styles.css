@@ -224,3 +224,6 @@ input[type=password]{font:inherit;font-size:16px;width:100%;border:1px solid var
 .lkbtn{font:inherit;font-size:14px;font-weight:500;background:none;border:0;padding:6px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer;align-self:flex-start}
 .acct{display:flex;flex-direction:column;gap:10px}
 button:disabled,input:disabled{opacity:.6}
+.rt-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rt-add select{flex:1 1 200px;width:auto;font-size:14px;padding:6px 8px}
+.rt-add .mini{padding:7px 11px;font-size:13px}
