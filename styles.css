@@ -195,3 +195,16 @@ select{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);borde
 .vx{display:block;width:10px;height:10px;background:#B4541A;border:2px solid #fff;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.3);pointer-events:none}
 .dot{position:relative}
 .dot::after{content:"";position:absolute;inset:-8px}
+
+/* 예산으로 매물 찾기, 등록부 표시 */
+.bud{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=number]{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:8px 10px;font-variant-numeric:tabular-nums}
+.lt.ask .lk{align-self:flex-start}
+.facts li.new{border-color:var(--first);color:var(--first)}
+.facts li.new b{font-weight:600}
+.facts li.more{border-style:dashed;color:var(--muted)}
+.badge.fresh{background:var(--accent-soft);color:var(--accent)}
+.badge.gone{background:var(--line);color:var(--muted)}
+.bk.is-gone h3{color:var(--muted);text-decoration:line-through}
+.ask-blk{padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+#home .ask-blk{border-bottom:0;border-top:1px solid var(--line);padding-top:14px;margin-top:4px}

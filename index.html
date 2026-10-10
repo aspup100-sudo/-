@@ -40,6 +40,7 @@
   <section class="view" id="home" hidden>
     <p class="hint">어느 구역을 볼까요?</p>
     <div class="list" id="areaList"></div>
+    <div id="askHomeSlot"></div>
     <p class="hint legend"><b>체크와 메모</b>는 이 기기에서 나만 봐요. <b>리뷰</b>는 링크를 가진 모두가 봐요.</p>
   </section>
 
@@ -112,6 +113,7 @@
   </section>
 
   <section class="view" id="listings" role="tabpanel" aria-labelledby="tab-listings" hidden>
+    <div id="askAreaSlot"></div>
     <div class="blk" id="zoneBlk">
       <h2>구역 정보</h2>
       <p class="hint" id="zoneHint"></p>
@@ -146,6 +148,25 @@
     <p class="foot">걷는 시간은 지도 위 직선거리에 1.3을 곱하고 시속 4km로 계산한 어림값이에요. 언덕과 신호는 반영하지 못해요. 정확한 길과 시간은 각 줄의 카카오맵 길찾기로 확인하세요.</p>
   </section>
 </div>
+<template id="askTpl">
+  <div class="blk ask-blk" id="askBlk">
+    <h2>예산으로 매물 찾기</h2>
+    <p class="hint" id="askHint"></p>
+    <div class="bud">
+      <label class="fld">최소 (억)<input type="number" inputmode="decimal" id="budMin" min="0" step="0.1" placeholder="예: 3"></label>
+      <label class="fld">최대 (억)<input type="number" inputmode="decimal" id="budMax" min="0" step="0.1" placeholder="예: 4"></label>
+    </div>
+    <div class="chips" id="budTypes" role="group" aria-label="유형">
+      <button class="chip" type="button" data-t="" aria-pressed="true">전체</button>
+      <button class="chip" type="button" data-t="다세대" aria-pressed="false">다세대</button>
+      <button class="chip" type="button" data-t="단독" aria-pressed="false">단독</button>
+      <button class="chip" type="button" data-t="아파트" aria-pressed="false">아파트</button>
+    </div>
+    <p class="rt-sum" id="budSum" role="status"></p>
+    <div class="list" id="budList"></div>
+    <p class="foot">유형과 호가만 가져와요. 번지, 층, 대지지분 같은 자세한 내용은 구역 이름 옆 링크의 재개발닷컴이나 중개업소에서 확인하세요. 네이버에만 올라온 매물은 빠져 있을 수 있어요.</p>
+  </div>
+</template>
 <button class="totop" id="toTop" type="button" hidden aria-label="맨 위로 올라가기">↑ 맨 위로</button>
 <dialog id="nameDlg">
   <form method="dialog" id="nameForm">
@@ -159,11 +180,14 @@
 <script src="./config.js"></script>
 <script src="./data.js"></script>
 <script src="./data-guui.js"></script>
+<script src="./listings.js"></script>
+<script src="./updated.js"></script>
 <script src="./areas.js"></script>
 <script type="module" src="./sync.js"></script>
 <script src="./app.js"></script>
 <script src="./reviews.js"></script>
 <script src="./map.js"></script>
 <script src="./route.js"></script>
+<script src="./asks.js"></script>
 </body>
 </html>

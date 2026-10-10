@@ -56,6 +56,12 @@
       if (b[5] !== cur) { cur = b[5]; var g = el("div", "grp"); g.dataset.street = cur; g.appendChild(el("span", null, ST[cur])); list.appendChild(g); }
       var c = el("article", "bk"); c.dataset.id = id; c.dataset.street = b[5]; c.id = "card-" + id;
       var top = el("div", "bk-top"); top.appendChild(el("h3", null, b[1])); if (b[6]) top.appendChild(el("span", "badge", "먼저 갈 곳")); c.appendChild(top);
+      var stt = /^(new|gone):(\d{4})-(\d{2})-(\d{2})$/.exec(b[9] || "");
+      if (stt) { // 매일 등록부를 다시 확인해서 붙이는 표시
+        var md = (+stt[3]) + "/" + (+stt[4]);
+        if (stt[1] === "new") top.appendChild(el("span", "badge fresh", "새로 등록 " + md));
+        else { top.appendChild(el("span", "badge gone", "등록부에서 사라짐 " + md)); c.classList.add("is-gone"); c.appendChild(el("p", "tags", "폐업했거나 다른 곳으로 옮겼을 수 있어요. 가기 전에 전화로 확인하세요.")); }
+      }
       if (b[7]) c.appendChild(el("p", "tags", "올린 매물: " + b[7]));
       var ad = el("p", "row"); ad.appendChild(el("span", "v", b[2])); ad.appendChild(mapLinks(b[3])); c.appendChild(ad);
       var tl = el("p", "row");
@@ -115,7 +121,9 @@
     $("#listHint").textContent = AREA.listHint || "";
     (AREA.ask || []).forEach(function (q) { $("#askList").appendChild(el("li", null, q)); });
     if (AREA.excluded && AREA.excluded.length) { $("#excludedBox").hidden = false; AREA.excluded.forEach(function (x) { $("#excludedList").appendChild(el("li", null, x)); }); }
-    $("#foot").textContent = AREA.foot || "";
+    var up = window.CS_UPDATED, ft = AREA.foot || "";
+    if (up && up.date) { var d = up.date.split("-"); ft += " 등록부를 마지막으로 다시 확인한 날: " + (+d[0]) + "년 " + (+d[1]) + "월 " + (+d[2]) + "일. 그 뒤 새로 생긴 곳과 사라진 곳은 카드에 표시돼요."; }
+    $("#foot").textContent = ft;
   }
   function when(iso) {
     var d = new Date(iso); if (isNaN(d)) return "";
