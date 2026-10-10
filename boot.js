@@ -12,7 +12,11 @@
 
   // 길 이름으로 묶기: "자양로18길 7" → 큰길 "자양로". 곳이 많은 큰길 8개까지 묶음으로, 나머지는 "그 밖의 길".
   function roadOf(addr) { return (addr.match(/^(\S+)/) || ["", ""])[1]; }
-  function baseOf(road) { return road.replace(/\d+[가-힣]?길$/, "").replace(/\d+번길$/, "") || road; }
+  function baseOf(road) { // "자양로18길" → "자양로", "상원1길"·"상원길" → "상원길", "서울숲2길" → "서울숲길"
+    var b = road.replace(/\d+[가-힣]?길$/, "").replace(/\d+번길$/, "");
+    if (!b) return road;
+    return b === road || /(로|대로)$/.test(b) ? b : b + "길";
+  }
   function queryOf(addr) { var m = addr.replace(/\s+,/g, ",").match(/^(\S+)\s+(\d+(?:-\d+)?)/); return m ? m[1] + " " + m[2] : addr; }
   function makeArea(d, dongName) {
     var rows = d.dongs[dongName] || [], cnt = {};

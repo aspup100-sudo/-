@@ -86,16 +86,31 @@ function asks(p, date, log) {
 const HEAD = "// 자동으로 만들어지는 파일이에요 (tools/apply-update.js). 재개발닷컴 구역별 매물 표의 유형과 호가만 담아요.\n// rows: [유형, 호가(만원), 처음 본 날(없으면 추적 시작 전부터 있던 것)]\n";
 function won(v) { const e = Math.floor(v / 10000), m = v % 10000; return (e ? e + "억" : "") + (m ? (e ? " " : "") + m.toLocaleString("ko-KR") + "만" : ""); }
 
+// 브라우저가 돌려준 결과는 { "sum": "8자리", "patch": {...} } 봉투에 담겨 와요.
+// 옮겨 적다가 한 글자라도 달라지면 sum이 안 맞아서 여기서 멈춰요.
+function fnv(str) { let h = 0x811c9dc5; const b = Buffer.from(str, "utf8"); for (let i = 0; i < b.length; i++) { h ^= b[i]; h = Math.imul(h, 0x01000193) >>> 0; } return ("0000000" + h.toString(16)).slice(-8); }
+function open(file) {
+  const env = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (env && env.sum && env.patch) {
+    const got = fnv(JSON.stringify(env.patch));
+    if (got !== env.sum) throw new Error(`${path.basename(file)}: 옮겨 적은 내용이 원본과 달라요 (sum ${env.sum} ≠ ${got}). 브라우저 결과를 다시 그대로 옮겨 주세요.`);
+    return env.patch;
+  }
+  return env; // 봉투 없이 직접 쓴 patch (테스트용)
+}
+
 if (require.main === module) {
-  const patch = JSON.parse(fs.readFileSync(process.argv[2], "utf8")), date = patch.date, log = [];
+  const files = process.argv.slice(2); if (!files.length) { console.error("사용법: node tools/apply-update.js <patch.json> [patch2.json …]"); process.exit(1); }
+  const patch = {}; files.forEach(f => Object.assign(patch, open(f)));
+  const date = patch.date, log = [];
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) throw new Error("date가 필요해요 (YYYY-MM-DD)");
+  if (patch.seoul) require("./build-seoul.js").applyPatch(patch.seoul, date, log);
   Object.keys(patch.brokers || {}).forEach(a => { if (AREAS[a]) brokers(a, patch.brokers[a], date, log); });
   if (patch.asks) asks(patch.asks, date, log);
-  // 화면에 보이는 "마지막 확인" 날짜
-  // 같은 날 두 번째 실행이 한쪽만 확인했어도, 앞서 확인한 쪽 표시는 남겨요.
+  // 화면에 보이는 "마지막 확인" 날짜. 같은 날 두 번째 실행이 한쪽만 확인했어도, 앞서 확인한 쪽 표시는 남겨요.
   let prev = {}; try { const w = {}; new Function("window", fs.readFileSync(path.join(ROOT, "updated.js"), "utf8"))(w); prev = w.CS_UPDATED || {}; } catch (e) {}
   const same = prev.date === date;
-  fs.writeFileSync(path.join(ROOT, "updated.js"), `// 자동으로 만들어지는 파일이에요. 마지막으로 등록부와 매물을 다시 확인한 날.\nwindow.CS_UPDATED=${JSON.stringify({ date, brokers: !!patch.brokers || (same && !!prev.brokers), asks: !!patch.asks || (same && !!prev.asks) })};\n`);
+  fs.writeFileSync(path.join(ROOT, "updated.js"), `// 자동으로 만들어지는 파일이에요. 마지막으로 등록부와 매물을 다시 확인한 날.\nwindow.CS_UPDATED=${JSON.stringify({ date, brokers: !!(patch.brokers || patch.seoul) || (same && !!prev.brokers), asks: !!patch.asks || (same && !!prev.asks) })};\n`);
   console.log(log.length ? log.join("\n") : "바뀐 것 없음");
 }
-module.exports = { nameOf, phoneOf, queryOf, won, HEAD };
+module.exports = { nameOf, phoneOf, queryOf, won, HEAD, fnv };
