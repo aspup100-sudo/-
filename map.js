@@ -138,7 +138,8 @@
       if (vis) { bounds.extend(d.ov.getPosition()); sig.push(id); shown++; }
     });
     var s = sig.join(",");
-    if (shown && s !== lastSig && !drawing) { lastSig = s; map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); }
+    // 영역을 그리는 중이거나 영역으로 보는 중에는 지도를 다시 맞추지 않아요 (그린 테두리가 그대로 보이게).
+    if (shown && s !== lastSig && !drawing) { lastSig = s; if (!active) { map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); } }
     if (!wired) { wired = true; wireRegion(kakao); }
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
     $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : ""));
