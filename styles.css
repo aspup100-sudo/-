@@ -159,10 +159,10 @@ a.mini{text-decoration:none;display:inline-block}
 .kmap{height:min(340px,48vh);border-radius:8px;overflow:hidden;margin-top:6px;background:var(--bg)}
 #rmapBox{padding:4px}
 #rmapBox .kmap{margin-top:0;height:260px}
-.dot{width:12px;height:12px;border-radius:50%;border:2px solid #fff;background:#15211E;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.25);display:block}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;background:#15211E;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.25);display:block}
 .dot[data-status="call"]{background:#2460A7}
 .dot[data-status="visit"]{background:#0B6E5F}
-.dot[data-pick="1"]{width:18px;height:18px;border-color:#B4541A;border-width:3px}
+.dot[data-pick="1"]{width:15px;height:15px;border-color:#B4541A;border-width:3px}
 .pin{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:#0B6E5F;color:#fff;font:600 13px/1 system-ui,sans-serif;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
 .pin.start{background:#B4541A}
 .tg.pick[aria-pressed="true"]{background:var(--first-soft);border-color:var(--first);color:var(--first)}
