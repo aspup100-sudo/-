@@ -81,6 +81,7 @@
       sum.textContent = (M && !M.done()) ? "위치를 찾는 중이에요…" : "지도를 불러오지 못해 순서를 계산할 수 없어요. 인터넷 연결을 확인해 주세요. 담은 곳은 아래에 있어요.";
       lost.forEach(function (p, i) { list.appendChild(item(i + 1, p, null)); }); $("#rmapBox").hidden = true; return;
     }
+    sum.textContent = "순서를 계산하는 중…";
     startPoint().then(function (st) {
       if (my !== token) return;
       var seq = order(pts, st ? st.ll : null), dwell = +selDwell.value || 15, walk = 0, legs = [];
