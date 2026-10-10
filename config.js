@@ -14,9 +14,9 @@ window.CS_CONFIG = {
   },
   room: "changsin",
   // true면 로그인(회원가입)해야 앱이 보여요. false면 구경은 누구나 하고 리뷰만 회원이 보고 써요.
-  // 지금은 false: Firebase에서 이메일/비밀번호 로그인을 켜고 가입이 되는 걸 확인한 뒤 true로 바꿔요.
+  // 지금은 true: 로그인해야 앱이 열려요. 가입에 문제가 생겨 급히 풀어야 하면 false로 바꿔요.
   // (false로 바꿀 때는 firestore.rules의 리뷰 read 규칙도 "if true"로 바꿔야 로그인 안 한 사람이 리뷰를 볼 수 있어요)
-  requireLogin: false,
+  requireLogin: true,
   // 카카오 지도 JavaScript 키. 카카오 개발자 콘솔에 등록한 사이트 주소에서만 동작해요. 비우면 지도와 동선이 꺼져요.
   kakaoKey: "228aeed5441b5aa1165cdc79ea1b9a59"
 };
