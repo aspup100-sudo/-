@@ -71,6 +71,48 @@
     return c;
   }
   window.CS_MAP.inside = inside; window.CS_MAP.pathOf = pathOf;
+  // 구역 표시: 정확한 경계선 자료가 없어서, 구역 안 번지 몇 곳의 가운데에 구역 면적만 한 옅은 원을 그려요.
+  var onMapClick = null;
+  function zoneColor(kind) { return /도심/.test(kind) ? "#7A4FB5" : /모아타운/.test(kind) ? "#2460A7" : "#0B6E5F"; }
+  function drawZones(kakao) {
+    var list = [];
+    (area.zones || []).forEach(function (z) {
+      if (z.parts) z.parts.forEach(function (p) { list.push({ short: p.short, kind: p.kind || z.kind.split("·")[0], soft: true, m2: p.m2, at: p.at }); });
+      else if (z.at && z.m2) list.push(z);
+    });
+    if (!list.length) return;
+    var g = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK;
+    function one(addr) {
+      var k = "z:" + addr; if (cache.p[k]) return Promise.resolve(cache.p[k]);
+      return new Promise(function (res) { g.addressSearch(area.gu + " " + addr, function (r, st) { if (st === OK && r[0]) { cache.p[k] = [+r[0].y, +r[0].x]; res(cache.p[k]); } else res(null); }); });
+    }
+    var kinds = {}, anySoft = false;
+    Promise.all(list.map(function (z) {
+      return Promise.all(z.at.map(one)).then(function (pts) {
+        pts = pts.filter(Boolean); if (!pts.length) return;
+        var med = function (i) { var v = pts.map(function (p) { return p[i]; }).sort(function (a, b) { return a - b; }); return v[Math.floor(v.length / 2)]; };
+        var m = [med(0), med(1)], r = Math.sqrt(z.m2 / Math.PI);
+        var near = pts.filter(function (p) { return Math.abs(p[0] - m[0]) * 111000 < Math.max(350, 2.5 * r) && Math.abs(p[1] - m[1]) * 88000 < Math.max(350, 2.5 * r); });
+        if (!near.length) near = pts;
+        var c = [near.reduce(function (a, p) { return a + p[0]; }, 0) / near.length, near.reduce(function (a, p) { return a + p[1]; }, 0) / near.length];
+        var col = zoneColor(z.kind || ""), ll = new kakao.maps.LatLng(c[0], c[1]);
+        var circle = new kakao.maps.Circle({ center: ll, radius: r, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.75, strokeStyle: z.soft ? "shortdash" : "solid", fillColor: col, fillOpacity: 0.13 });
+        circle.setMap(map);
+        kakao.maps.event.addListener(circle, "click", function (e) { if (onMapClick) onMapClick(e); });
+        var lab = document.createElement("span"); lab.className = "zlabel"; lab.textContent = z.short || z.name; lab.style.color = col;
+        new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }).setMap(map);
+        kinds[col] = /도심/.test(z.kind) ? "도심공공" : /모아타운/.test(z.kind) ? "모아타운" : "신통기획 재개발"; if (z.soft) anySoft = true;
+      });
+    })).then(function () {
+      saveCache();
+      var leg = $("#zoneLegend"); if (!Object.keys(kinds).length) return;
+      leg.textContent = "";
+      Object.keys(kinds).forEach(function (col) { var s = document.createElement("span"); s.className = "zl"; var i = document.createElement("i"); i.style.background = col; s.appendChild(i); s.appendChild(document.createTextNode(kinds[col])); leg.appendChild(s); });
+      leg.appendChild(document.createTextNode((anySoft ? "점선은 후보지로 뽑히기 전 단계. " : "") + "원은 구역의 대략적인 위치와 크기예요. 실제 경계선이 아니에요."));
+      leg.hidden = false;
+    });
+  }
+
   function wireRegion(kakao) {
     var btn = $("#regionBtn"), undo = $("#regionUndo"), ok = $("#regionOk"), cancel = $("#regionCancel"), msg = $("#regionMsg"), box = $("#kmap");
     function clearShape() { if (shape) { shape.setMap(null); shape = null; } marks.forEach(function (m) { m.setMap(null); }); marks = []; }
@@ -80,6 +122,7 @@
       if (pts.length >= 2) {
         shape = new kakao.maps.Polygon({ path: pathOf(pts).map(function (p) { return new kakao.maps.LatLng(p[0], p[1]); }), strokeWeight: 3, strokeColor: "#B4541A", strokeOpacity: 0.95, fillColor: "#F2A65A", fillOpacity: 0.3 });
         shape.setMap(map);
+        kakao.maps.event.addListener(shape, "click", function (e) { if (onMapClick) onMapClick(e); });
       }
     }
     function ui() {
@@ -93,15 +136,19 @@
       else msg.textContent = "";
     }
     function off() { active = false; drawing = false; pts = []; clearShape(); ui(); }
-    kakao.maps.event.addListener(map, "click", function (e) {
-      if (!drawing) return;
-      pts.push([e.latLng.getLat(), e.latLng.getLng()]); paintShape(); ui();
-    });
+    var lastAt = 0, lastKey = "";
+    onMapClick = function (e) { // 지도, 구역 원, 그리던 도형 어디를 눌러도 꼭짓점이 찍히게 (같은 클릭이 두 번 들어오면 한 번만)
+      if (!drawing || !e || !e.latLng) return;
+      var p = [e.latLng.getLat(), e.latLng.getLng()], k = p[0].toFixed(7) + "," + p[1].toFixed(7), now = Date.now();
+      if (k === lastKey && now - lastAt < 400) return; lastKey = k; lastAt = now;
+      pts.push(p); paintShape(); ui();
+    };
+    kakao.maps.event.addListener(map, "click", onMapClick);
     btn.addEventListener("click", function () {
       if (active) { off(); A.setRegion(null); return; }
       drawing = true; pts = []; ui();
     });
-    undo.addEventListener("click", function () { pts.pop(); paintShape(); ui(); });
+    undo.addEventListener("click", function () { pts.pop(); lastKey = ""; paintShape(); ui(); });
     cancel.addEventListener("click", off);
     ok.addEventListener("click", function () {
       if (pts.length < 2) return;
@@ -140,7 +187,7 @@
     var s = sig.join(",");
     // 영역을 그리는 중이거나 영역으로 보는 중에는 지도를 다시 맞추지 않아요 (그린 테두리가 그대로 보이게).
     if (shown && s !== lastSig && !drawing) { lastSig = s; if (!active) { map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); } }
-    if (!wired) { wired = true; wireRegion(kakao); }
+    if (!wired) { wired = true; wireRegion(kakao); drawZones(kakao); }
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
     $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : ""));
   }
