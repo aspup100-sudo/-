@@ -4,6 +4,7 @@
   var A = window.CS_APP, D = window.CS_ASKS, AREAS = window.CS_AREAS || { order: [] };
   var tpl = document.getElementById("askTpl"); if (!A || !D || !tpl) return;
   var slot = document.getElementById(A.area ? "askAreaSlot" : "askHomeSlot"); if (!slot) return;
+  if (A.area && !((D.areas || {})[A.area.id] || []).length) return; // 호가를 넣지 않은 동에서는 이 칸을 숨겨요
   slot.appendChild(tpl.content.cloneNode(true));
   var $ = A.$, el = A.el, st = { min: "", max: "", type: "" };
   try { st = Object.assign(st, JSON.parse(localStorage.getItem("cs-budget") || "{}")); } catch (e) {}

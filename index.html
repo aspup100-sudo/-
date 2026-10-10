@@ -73,10 +73,19 @@
   </section>
 
   <section class="view" id="home" hidden>
-    <p class="hint">어느 구역을 볼까요?</p>
+    <p class="hint" id="bootErr" hidden></p>
+    <h2>정리해 둔 구역</h2>
+    <p class="hint">재개발 구역 정보와 호가까지 넣어 둔 곳이에요.</p>
     <div class="list" id="areaList"></div>
+    <div class="blk" id="seoulBlk" hidden>
+      <h2>서울 전체에서 고르기</h2>
+      <p class="hint" id="seoulHint"></p>
+      <input type="text" id="dongSearch" placeholder="동 이름으로 찾기 (예: 성수동)" autocomplete="off" aria-label="동 이름으로 찾기">
+      <div class="chips" id="guChips" role="group" aria-label="구 고르기"></div>
+      <div class="list" id="dongList"></div>
+    </div>
     <div id="askHomeSlot"></div>
-    <p class="foot"><a class="lk" href="./pick.html">새 구역 고르기 (지도에서 범위를 그려 요청) ›</a></p>
+
     <p class="hint legend"><b>체크와 메모</b>는 이 기기에서 나만 봐요. <b>리뷰</b>는 링크를 가진 모두가 봐요.</p>
   </section>
 
@@ -236,11 +245,6 @@
 <script src="./updated.js"></script>
 <script src="./areas.js"></script>
 <script type="module" src="./sync.js"></script>
-<script src="./app.js"></script>
-<script src="./reviews.js"></script>
-<script src="./map.js"></script>
-<script src="./route.js"></script>
-<script src="./asks.js"></script>
-<script src="./auth.js"></script>
+<script src="./boot.js"></script>
 </body>
 </html>

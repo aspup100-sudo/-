@@ -4,6 +4,7 @@
   var AREAS = window.CS_AREAS || { order: [] };
   var areaId = "";
   try { areaId = new URLSearchParams(location.search).get("area") || ""; } catch (e) {}
+  if (window.CS_AREA_ID) areaId = window.CS_AREA_ID; // 서울 전체 자료에서 고른 동 (boot.js가 만들어 줘요)
   var AREA = AREAS[areaId] && AREAS[areaId].data ? AREAS[areaId] : null;
   var D = AREA ? AREA.data : { ST: {}, B: [], L: [] }, ST = D.ST, B = D.B, L = D.L || [];
   var store = {}, timers = {}, filter = "all", street = "";
@@ -117,6 +118,7 @@
       list.appendChild(c);
     });
     if (L.length) $("#listings").insertBefore($("#listBlk"), $("#zoneBlk")); // 정리한 매물이 있으면 매물을 먼저 보여줘요
+    $("#listBlk").hidden = !L.length && !AREA.listHint; // 정리한 매물이 없는 동에서는 빈 제목을 숨겨요
     $("#zoneHint").textContent = AREA.zoneHint || "";
     $("#listHint").textContent = AREA.listHint || "";
     (AREA.ask || []).forEach(function (q) { $("#askList").appendChild(el("li", null, q)); });
@@ -231,6 +233,37 @@
     });
   }
 
+  // 첫 화면: 서울 전체에서 구 → 동 고르기
+  function buildSeoul() {
+    var S = window.CS_SEOUL; if (!S || !S.gu) return;
+    $("#seoulBlk").hidden = false;
+    var d = (S.updated || "").split("-");
+    $("#seoulHint").textContent = "서울시에 등록된 중개업소 " + S.total.toLocaleString("ko-KR") + "곳이에요" + (d.length === 3 ? " (" + (+d[1]) + "월 " + (+d[2]) + "일 기준)" : "") + ". 구를 누르고 동을 고르면 그 동의 중개업소가 지도와 함께 나와요.";
+    var chips = $("#guChips"), list = $("#dongList"), search = $("#dongSearch"), cur = "";
+    try { cur = localStorage.getItem("cs-gu") || ""; } catch (e) {}
+    function dongLink(g, dn) { var a = el("a", "chip dong", dn[0] + " " + dn[1]); a.href = "./?gu=" + g.code + "&dong=" + encodeURIComponent(dn[0]); return a; }
+    function show() {
+      var q = search.value.trim(); list.textContent = "";
+      chips.querySelectorAll(".chip").forEach(function (c) { c.setAttribute("aria-pressed", String(!q && c.dataset.code === cur)); });
+      if (q) {
+        var box = el("div", "chips"), n = 0;
+        S.gu.forEach(function (g) { g.dongs.forEach(function (dn) { if (dn[0].indexOf(q) >= 0 && n < 60) { var a = dongLink(g, dn); a.textContent = g.name + " " + dn[0] + " " + dn[1]; box.appendChild(a); n++; } }); });
+        list.appendChild(n ? box : el("p", "empty", "그런 이름의 동이 없어요."));
+        return;
+      }
+      var g = S.gu.filter(function (x) { return x.code === cur; })[0]; if (!g) return;
+      var grp = el("div", "grp"); grp.appendChild(el("span", null, g.name + " · 중개업소 " + g.n.toLocaleString("ko-KR") + "곳")); list.appendChild(grp);
+      var bx = el("div", "chips"); g.dongs.forEach(function (dn) { bx.appendChild(dongLink(g, dn)); }); list.appendChild(bx);
+    }
+    S.gu.forEach(function (g) {
+      var c = el("button", "chip", g.name); c.type = "button"; c.dataset.code = g.code; c.setAttribute("aria-pressed", "false");
+      c.addEventListener("click", function () { cur = cur === g.code ? "" : g.code; search.value = ""; try { localStorage.setItem("cs-gu", cur); } catch (e) {} show(); });
+      chips.appendChild(c);
+    });
+    search.addEventListener("input", show);
+    show();
+  }
+
   // 리뷰(reviews.js)·지도(map.js)·동선(route.js)이 쓰는 연결 고리
   window.CS_APP = {
     area: AREA, B: B, cards: cards, el: el, when: when, $: $,
@@ -282,7 +315,8 @@
   // 시작
   loadLocal(); showName();
   if (!AREA) {
-    $("#home").hidden = false; buildHome();
+    $("#home").hidden = false; buildHome(); buildSeoul();
+    if (window.CS_BOOT_ERR) { $("#bootErr").hidden = false; $("#bootErr").textContent = window.CS_BOOT_ERR; }
     $("#progress").textContent = "재개발·재건축 구역별 중개업소와 리뷰";
     setSave("", "");
     return;

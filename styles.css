@@ -228,3 +228,9 @@ button:disabled,input:disabled{opacity:.6}
 .rt-add select{flex:1 1 200px;width:auto;font-size:14px;padding:6px 8px}
 .rt-add .mini{padding:7px 11px;font-size:13px}
 input[type=email]{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px 10px}
+
+/* 서울 전체에서 고르기 */
+a.chip{text-decoration:none;display:inline-block}
+a.chip.dong{font-variant-numeric:tabular-nums}
+#dongList .chips{gap:6px}
+.bk{content-visibility:auto;contain-intrinsic-size:auto 250px}
