@@ -130,8 +130,9 @@
     });
     function label(text, ll, col, loose) {
       var lab = document.createElement("span"); lab.className = "zlabel" + (loose ? " loose" : ""); lab.textContent = text; lab.style.color = col;
-      var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }); zoneLabels.push(lo);
+      var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0, clickable: !!loose }); zoneLabels.push(lo);
       if (labelsOn) lo.setMap(map);
+      return lab;
     }
     // 구역을 누르면 이름·단계를 잠깐 보여 줘요 (영역을 그리는 중에는 꼭짓점 찍기가 먼저예요)
     var tip = document.createElement("div"); tip.className = "ztip";
@@ -177,7 +178,32 @@
         anyLoose = true; label(z.short + " (경계 미정)", new kakao.maps.LatLng(z.c[0], z.c[1]), "#5B6663", true);
       });
       legend(srcNote);
+      drawExtra(kakao, label, showTip, function () { anyLoose = true; kinds["도심복합(민간)"] = KIND_COL["도심공공"]; legend(srcNote); });
     });
+  }
+  // 서울시 자료에 아직 경계가 없는 구역 (기사로 확인한 민간 도심복합 등, data/zones/extra.json): 이름만 대략적인 자리에, 누르면 출처
+  function drawExtra(kakao, label, showTip, done) {
+    if (!guCode || !window.fetch) return;
+    fetch("./data/zones/extra.json").then(function (r) { if (!r.ok) throw r; return r.json(); }).then(function (d) {
+      var list = (d.z || []).filter(function (z) { return z.gu === guCode; }); if (!list.length) return;
+      var g = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK;
+      list.forEach(function (z) {
+        var k = "z:" + z.at;
+        (cache.p[k] ? Promise.resolve(cache.p[k]) : new Promise(function (res) {
+          g.addressSearch(area.gu + " " + z.at, function (r, st) { if (st === OK && r[0]) { cache.p[k] = [+r[0].y, +r[0].x]; saveCache(); res(cache.p[k]); } else res(null); });
+        })).then(function (ll) {
+          if (!ll) return;
+          var pos = new kakao.maps.LatLng(ll[0], ll[1]);
+          var el = label(z.n + " (경계 미정)", pos, KIND_COL["도심공공"], true);
+          el.classList.add("tap");
+          el.addEventListener("click", function (e) {
+            e.stopPropagation();
+            showTip({ latLng: pos }, z.n, z.k.map(function (x) { return x[0] + " · " + x[1]; }).concat(["서울시 경계 자료에는 아직 없어서 " + z.at + " 근처에 이름만 적었어요.", "출처: " + z.src]));
+          });
+          done();
+        });
+      });
+    }).catch(function () {});
   }
 
 

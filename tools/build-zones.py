@@ -53,7 +53,7 @@ shp = glob.glob(os.path.join(SRC, "*.shp"))[0]
 r = shapefile.Reader(shp[:-4], encoding="cp949")
 names = [f[0] for f in r.fields[1:]]
 # 같은 구역이 사업 유형만 달리해 여러 번 올라온 경우(예: 신속통합기획 기획완료 + 재개발 구역지정 + 재정비촉진구역)는 하나로 합쳐요.
-# 그린 사람마다 경계가 조금씩 달라서, 고시 면적이 1% 안으로 같거나, 작은 쪽의 85% 이상이 겹치고 크기가 60% 이상 비슷하면 같은 구역으로 봐요.
+# 그린 사람마다 경계가 조금씩 달라서, 고시 면적이 1% 안으로 같고 절반 이상 겹치거나, 작은 쪽의 85% 이상이 겹치고 크기가 60% 이상 비슷하면 같은 구역으로 봐요.
 # 경계선은 정식 사업(재개발·재건축) > 재정비촉진 > 소규모 > 신속통합기획 순으로 고르고, 이름은 "창신9구역"처럼 부르는 이름을 앞세워요.
 RANK = {"BZ102": 0, "BZ103": 0, "BZ104": 0, "BZ105": 0, "BZ108": 0, "BZ402": 1, "BZ403": 1, "BZ404": 1, "BZ101": 3}
 by_gu, items = {}, []
@@ -73,9 +73,10 @@ for sr in r.iterShapeRecords():
     dup = None
     for o in items:
         if not o["_g"].intersects(geom): continue
-        if abs(o["_a"] - item["_a"]) <= 0.01 * max(item["_a"], 1): dup = o; break
-        small, big = sorted((o["_g"].area, geom.area))
-        if big and small / big >= 0.6 and o["_g"].intersection(geom).area >= 0.85 * small: dup = o; break
+        small, big = sorted((o["_g"].area, geom.area)); ov = o["_g"].intersection(geom).area
+        # 면적이 같아도 서로 다른 곳(예: 여의도 삼익·시범)일 수 있어서, 절반 이상 겹칠 때만 같은 구역으로 봐요
+        if abs(o["_a"] - item["_a"]) <= 0.01 * max(item["_a"], 1) and ov >= 0.5 * small: dup = o; break
+        if big and small / big >= 0.6 and ov >= 0.85 * small: dup = o; break
     if not dup:
         items.append(item); continue
     for kk in item["k"]:
