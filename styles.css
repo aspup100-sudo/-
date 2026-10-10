@@ -227,3 +227,4 @@ button:disabled,input:disabled{opacity:.6}
 .rt-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .rt-add select{flex:1 1 200px;width:auto;font-size:14px;padding:6px 8px}
 .rt-add .mini{padding:7px 11px;font-size:13px}
+input[type=email]{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px 10px}

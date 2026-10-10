@@ -1,6 +1,6 @@
 // 회원(로그인)과 모두가 보는 리뷰 저장 — Firebase Authentication + Firestore.
 // 체크와 메모는 여기로 오지 않고 각자 기기에만 남아요. config.js에 firebase 설정이 없으면 꺼진 상태로 둬요.
-// 아이디는 이메일이 아니라서, Firebase에는 "아이디@프로젝트 주소" 모양으로 바꿔 넣어요. 실제 메일은 오가지 않아요.
+// 이메일과 비밀번호로 가입·로그인하고, 비밀번호를 잊으면 그 이메일로 재설정 링크를 보내요.
 const cfg = window.CS_CONFIG || {};
 const done = window.__csSyncResolve || (() => {});
 (async () => {
@@ -17,9 +17,9 @@ const done = window.__csSyncResolve || (() => {});
     const asked = new URLSearchParams(location.search).get("room") || cfg.room || "main";
     const room = (asked.match(/[A-Za-z0-9_-]{1,40}/) || ["main"])[0];
     const rev = fs.collection(db, "rooms", room, "reviews");
-    const DOMAIN = cfg.firebase.authDomain || (cfg.firebase.projectId + ".firebaseapp.com");
-    const mail = id => String(id).trim().toLowerCase() + "@" + DOMAIN;
-    const shape = u => u ? { uid: u.uid, id: (u.email || "").split("@")[0], nick: u.displayName || "" } : null;
+    auth.languageCode = "ko"; // 재설정 메일을 한국어로
+    const mail = e => String(e).trim().toLowerCase();
+    const shape = u => u ? { uid: u.uid, email: u.email || "", nick: u.displayName || "" } : null;
     const subs = []; let known = false, cur = null;
     const emit = () => subs.forEach(f => { try { f(shape(cur)); } catch (e) {} });
     au.onAuthStateChanged(auth, u => {
@@ -31,12 +31,13 @@ const done = window.__csSyncResolve || (() => {});
       auth: {
         onChange(f) { subs.push(f); if (known) f(shape(cur)); },
         user() { return shape(cur); },
-        async signUp(id, pw, nick) {
-          const c = await au.createUserWithEmailAndPassword(auth, mail(id), pw);
+        async signUp(email, pw, nick) {
+          const c = await au.createUserWithEmailAndPassword(auth, mail(email), pw);
           await au.updateProfile(c.user, { displayName: nick });
           cur = c.user; known = true; emit(); return shape(cur);
         },
-        async signIn(id, pw) { const c = await au.signInWithEmailAndPassword(auth, mail(id), pw); return shape(c.user); },
+        async signIn(email, pw) { const c = await au.signInWithEmailAndPassword(auth, mail(email), pw); return shape(c.user); },
+        resetPassword(email) { return au.sendPasswordResetEmail(auth, mail(email)); },
         signOut() { return au.signOut(auth); },
         async setNick(nick) { if (!cur) throw new Error("signed out"); await au.updateProfile(cur, { displayName: nick }); emit(); }
       },

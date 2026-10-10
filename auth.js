@@ -4,21 +4,22 @@
   var A = window.CS_APP, cfg = window.CS_CONFIG || {}; if (!A) return;
   var $ = A.$, body = document.body;
   var configured = !!(cfg.firebase && cfg.firebase.projectId), need = configured && !!cfg.requireLogin;
-  var view = $("#authView"), lf = $("#loginForm"), sf = $("#signupForm"), wait = $("#authWait"), acct = $("#acctDlg"), btn = $("#nameBtn");
+  var view = $("#authView"), lf = $("#loginForm"), sf = $("#signupForm"), rf = $("#resetForm"), wait = $("#authWait"), acct = $("#acctDlg"), btn = $("#nameBtn");
   var sync = null, user = null;
   function seen() { try { return JSON.parse(localStorage.getItem("cs-auth-seen") || "null"); } catch (e) { return null; } }
-  function setSeen(u) { try { if (u) localStorage.setItem("cs-auth-seen", JSON.stringify({ id: u.id, nick: u.nick })); else localStorage.removeItem("cs-auth-seen"); } catch (e) {} }
+  function setSeen(u) { try { if (u) localStorage.setItem("cs-auth-seen", JSON.stringify({ nick: u.nick })); else localStorage.removeItem("cs-auth-seen"); } catch (e) {} }
+  var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   function lock(on) { body.classList.toggle("locked", !!on); view.hidden = !on; if (on) window.scrollTo(0, 0); }
-  function mode(m) { // wait | login | signup
-    wait.hidden = m !== "wait"; lf.hidden = m !== "login"; sf.hidden = m !== "signup";
-    $("#authTitle").textContent = m === "signup" ? "회원가입" : "로그인";
-    var f = m === "login" ? $("#liId") : m === "signup" ? $("#suId") : null; if (f) setTimeout(function () { try { f.focus(); } catch (e) {} }, 50);
+  function mode(m) { // wait | login | signup | reset
+    wait.hidden = m !== "wait"; lf.hidden = m !== "login"; sf.hidden = m !== "signup"; rf.hidden = m !== "reset";
+    $("#authTitle").textContent = m === "signup" ? "회원가입" : m === "reset" ? "비밀번호 찾기" : "로그인";
+    var f = m === "login" ? $("#liId") : m === "signup" ? $("#suId") : m === "reset" ? $("#rsId") : null; if (f) setTimeout(function () { try { f.focus(); } catch (e) {} }, 50);
   }
-  function label() { if (!configured) return; btn.textContent = user ? "내 계정: " + (user.nick || user.id) : "로그인"; }
+  function label() { if (!configured) return; btn.textContent = user ? "내 계정: " + (user.nick || user.email) : "로그인"; }
   var ERR = {
-    "auth/email-already-in-use": "이미 있는 아이디예요. 다른 아이디를 써주세요.",
-    "auth/invalid-credential": "아이디나 비밀번호가 맞지 않아요.", "auth/wrong-password": "아이디나 비밀번호가 맞지 않아요.", "auth/user-not-found": "아이디나 비밀번호가 맞지 않아요.",
-    "auth/invalid-email": "아이디에 쓸 수 없는 글자가 있어요.", "auth/weak-password": "비밀번호가 너무 쉬워요. 8자 이상으로 해주세요.",
+    "auth/email-already-in-use": "이미 가입된 이메일이에요. 로그인하거나 비밀번호 찾기를 써보세요.",
+    "auth/invalid-credential": "이메일이나 비밀번호가 맞지 않아요.", "auth/wrong-password": "이메일이나 비밀번호가 맞지 않아요.", "auth/user-not-found": "이메일이나 비밀번호가 맞지 않아요.",
+    "auth/invalid-email": "이메일 주소를 다시 확인해 주세요.", "auth/missing-email": "이메일을 넣어주세요.", "auth/weak-password": "비밀번호가 너무 쉬워요. 8자 이상으로 해주세요.",
     "auth/too-many-requests": "시도가 너무 많았어요. 잠시 뒤에 다시 해주세요.", "auth/network-request-failed": "인터넷 연결을 확인해 주세요.",
     "auth/operation-not-allowed": "회원가입이 아직 켜져 있지 않아요. 운영자에게 알려주세요.", "auth/user-disabled": "사용이 중지된 계정이에요."
   };
@@ -31,7 +32,7 @@
     requireLogin: function () { if (!sync) return; mode("login"); lock(true); },
     openAccount: function () {
       if (!user) { window.CS_AUTH.requireLogin(); return; }
-      $("#acId").textContent = user.id; $("#acNick").value = user.nick || ""; $("#acMsg").textContent = "";
+      $("#acId").textContent = user.email; $("#acNick").value = user.nick || ""; $("#acMsg").textContent = "";
       if (acct.showModal) acct.showModal(); else acct.setAttribute("open", "");
     }
   };
@@ -39,20 +40,31 @@
 
   $("#toSignup").addEventListener("click", function () { $("#suErr").textContent = ""; mode("signup"); });
   $("#toLogin").addEventListener("click", function () { $("#liErr").textContent = ""; mode("login"); });
+  $("#toLogin2").addEventListener("click", function () { $("#liErr").textContent = ""; mode("login"); });
+  $("#toReset").addEventListener("click", function () { $("#rsErr").textContent = ""; $("#rsOk").textContent = ""; $("#rsId").value = $("#liId").value.trim(); mode("reset"); });
+  rf.addEventListener("submit", function (e) {
+    e.preventDefault(); var err = $("#rsErr"), ok = $("#rsOk"); err.textContent = ""; ok.textContent = "";
+    var em = $("#rsId").value.trim().toLowerCase();
+    if (!EMAIL.test(em)) { say(err, "이메일 주소를 다시 확인해 주세요."); return; }
+    busy(rf, true);
+    sync.auth.resetPassword(em).then(function () {
+      ok.textContent = "가입된 이메일이라면 메일을 보냈어요. 메일의 링크를 눌러 새 비밀번호를 정한 뒤 여기서 다시 로그인하세요. 몇 분이 지나도 안 오면 스팸함을 확인해 주세요.";
+    }, function (x) { say(err, x); }).then(function () { busy(rf, false); });
+  });
   var back = $("#authBack"); back.addEventListener("click", function () { lock(false); });
 
   lf.addEventListener("submit", function (e) {
     e.preventDefault(); var err = $("#liErr"); err.textContent = "";
     var id = $("#liId").value.trim().toLowerCase(), pw = $("#liPw").value;
-    if (!id || !pw) { say(err, "아이디와 비밀번호를 넣어주세요."); return; }
-    if (!/^[a-z0-9_]{4,20}$/.test(id)) { say(err, "아이디나 비밀번호가 맞지 않아요."); return; }
+    if (!id || !pw) { say(err, "이메일과 비밀번호를 넣어주세요."); return; }
+    if (!EMAIL.test(id)) { say(err, "이메일 주소를 다시 확인해 주세요."); return; }
     busy(lf, true);
     sync.auth.signIn(id, pw).then(function () { $("#liPw").value = ""; }, function (x) { say(err, x); }).then(function () { busy(lf, false); });
   });
   sf.addEventListener("submit", function (e) {
     e.preventDefault(); var err = $("#suErr"); err.textContent = "";
     var id = $("#suId").value.trim().toLowerCase(), pw = $("#suPw").value, pw2 = $("#suPw2").value, nick = $("#suNick").value.trim();
-    if (!/^[a-z0-9_]{4,20}$/.test(id)) { say(err, "아이디는 영문 소문자, 숫자, 밑줄(_)로 4~20자예요."); return; }
+    if (!EMAIL.test(id)) { say(err, "이메일 주소를 다시 확인해 주세요. 비밀번호를 잊었을 때 이 주소로 메일을 보내요."); return; }
     if (pw.length < 8) { say(err, "비밀번호는 8자 이상이어야 해요."); return; }
     if (pw !== pw2) { say(err, "비밀번호와 비밀번호 확인이 서로 달라요."); return; }
     if (nick.length < 2 || nick.length > 12) { say(err, "닉네임은 2~12자로 해주세요."); return; }
@@ -84,7 +96,7 @@
     sync = s; window.CS_AUTH.active = true;
     s.auth.onChange(function (u) {
       user = u; label();
-      if (u) { setSeen(u); A.setName(u.nick || u.id); lock(false); }
+      if (u) { setSeen(u); A.setName(u.nick || u.email.split("@")[0]); lock(false); }
       else { setSeen(null); A.setName(""); if (need) { mode("login"); lock(true); } }
     });
   });

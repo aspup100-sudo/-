@@ -237,7 +237,7 @@
     name: function () { return me; },
     needName: function (then) {
       var AU = window.CS_AUTH;
-      if (AU && AU.active) { var u = AU.user(); if (u) then(u.nick || u.id); else AU.requireLogin(); return; } // 회원제: 닉네임이 리뷰 이름
+      if (AU && AU.active) { var u = AU.user(); if (u) then(u.nick || u.email.split("@")[0]); else AU.requireLogin(); return; } // 회원제: 닉네임이 리뷰 이름
       if (me) { then(me); return; } nameWaiters.push(then); openName();
     },
     setName: function (n) { me = n || ""; },
