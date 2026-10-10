@@ -92,7 +92,10 @@ if (require.main === module) {
   Object.keys(patch.brokers || {}).forEach(a => { if (AREAS[a]) brokers(a, patch.brokers[a], date, log); });
   if (patch.asks) asks(patch.asks, date, log);
   // 화면에 보이는 "마지막 확인" 날짜
-  fs.writeFileSync(path.join(ROOT, "updated.js"), `// 자동으로 만들어지는 파일이에요. 마지막으로 등록부와 매물을 다시 확인한 날.\nwindow.CS_UPDATED=${JSON.stringify({ date, brokers: !!patch.brokers, asks: !!patch.asks })};\n`);
+  // 같은 날 두 번째 실행이 한쪽만 확인했어도, 앞서 확인한 쪽 표시는 남겨요.
+  let prev = {}; try { const w = {}; new Function("window", fs.readFileSync(path.join(ROOT, "updated.js"), "utf8"))(w); prev = w.CS_UPDATED || {}; } catch (e) {}
+  const same = prev.date === date;
+  fs.writeFileSync(path.join(ROOT, "updated.js"), `// 자동으로 만들어지는 파일이에요. 마지막으로 등록부와 매물을 다시 확인한 날.\nwindow.CS_UPDATED=${JSON.stringify({ date, brokers: !!patch.brokers || (same && !!prev.brokers), asks: !!patch.asks || (same && !!prev.asks) })};\n`);
   console.log(log.length ? log.join("\n") : "바뀐 것 없음");
 }
 module.exports = { nameOf, phoneOf, queryOf, won, HEAD };
