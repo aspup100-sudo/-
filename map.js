@@ -319,7 +319,7 @@
     if (!wired) { wired = true; wireRegion(kakao); drawZones(kakao); }
     drawNb(kakao);
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
-    $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : "")) + (Object.keys(nbDots).length ? " · 흐린 점은 다른 동" : "");
+    $("#kmapNote").textContent = "빨간 점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : "")) + (Object.keys(nbDots).length ? " · 연한 빨간 점은 다른 동" : "");
     viewNote();
   }
 
@@ -393,7 +393,7 @@
       })).then(function () { drawNb(kakao); geocodeNb(kakao); });
     }, function () {});
   }
-  function viewNote() { if (map && map.getLevel() > MAXLV && $("#kmapNote")) $("#kmapNote").textContent = "점을 누르면 그 중개업소로 가요 · 지도를 더 키우면 다른 동 중개업소도 흐린 점으로 보여요"; }
+  function viewNote() { if (map && map.getLevel() > MAXLV && $("#kmapNote")) $("#kmapNote").textContent = "빨간 점을 누르면 그 중개업소로 가요 · 지도를 더 키우면 다른 동 중개업소도 연한 빨간 점으로 보여요"; }
   function geocodeNb(kakao) { // 위치를 아직 모르는 곳을 차례로 찾아요. 지금 화면에 가까운 곳부터.
     if (nbBusy) return Promise.resolve();
     var g = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK, ZERO = kakao.maps.services.Status.ZERO_RESULT;
