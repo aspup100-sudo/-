@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # 지도에 그리는 재개발·재건축 구역 경계를 만들어요. 서울시가 자료를 새로 올리면(반기마다) 다시 돌려요.
-#   python3 tools/build-zones.py <UPIS_C_UQ120.shp 가 있는 폴더> <seoul_municipalities_geo.json> [기준월 예: 2026-09]
+#   python3 tools/build-zones.py <UPIS_C_UQ120.shp 가 있는 폴더> <seoul_municipalities_geo.json> [기준월 예: 2026-09] [seoul_neighborhoods_geo.json]
 # 입력 1: 서울 열린데이터광장 OA-22712 "서울시 도시계획사업 현황(서울플랜+) 공간정보" zip 안의 shp파일
 #         (공공누리 제4유형: 출처표시·상업적 이용금지·변경금지. 경계선은 줄이거나 고치지 않고 좌표계만 바꿔요.)
 # 입력 2: southkorea/seoul-maps 의 juso/2015/json/seoul_municipalities_geo.json (구 경계, 어느 구에 걸치는지 가르는 데만 써요)
-# 출력: data/zones/<구코드>.json  { src, date, z: [{ id, n: 이름, k: [[사업 유형, 추진 단계], ...], m2, c: 이름표 [경도, 위도], p: [[[경도, 위도], ...], ...] }] }
+# 입력 3(있으면): 같은 저장소의 seoul_neighborhoods_geo.json (법정동 경계). 구역이 걸친 동 이름을 d에 적어서, 동 화면 구역 탭에 그 동 구역 목록을 보여 줘요.
+# 출력: data/zones/<구코드>.json  { src, date, z: [{ id, n: 이름, k: [[사업 유형, 추진 단계], ...], m2, c: 이름표 [경도, 위도], p: [[[경도, 위도], ...], ...], d: ["구코드:동"] }] }
 #       구 경계에 걸친 구역은 걸친 구 파일마다 들어가요.
 # 필요: pip install pyshp pyproj openpyxl shapely
 import sys, os, json, glob
@@ -16,6 +17,7 @@ from pyproj import Transformer
 
 SRC, GU = sys.argv[1], sys.argv[2]
 DATE = sys.argv[3] if len(sys.argv) > 3 else "2026-09"  # 자료 기준월 (zip 이름 끝의 202609)
+DONG = sys.argv[4] if len(sys.argv) > 4 else None
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 OUT = os.path.join(ROOT, "data", "zones")
 
@@ -85,7 +87,18 @@ for sr in r.iterShapeRecords():
     named = lambda n: bool(re.search(r"\d+구역$|^\S+\d+(-\d+)?$", n))  # "창신9구역", "창신3"처럼 부르는 이름
     if named(item["n"]) and (not named(dup["n"]) or len(item["n"]) < len(dup["n"])): dup["n"] = item["n"]
 
+dongs = []  # (구코드, 동 이름, 경위도 도형)
+if DONG:
+    from shapely.geometry import shape as gshape
+    from shapely.strtree import STRtree
+    for f in json.load(open(DONG, encoding="utf-8"))["features"]:
+        dongs.append((f["properties"]["EMD_CD"][:5], f["properties"]["EMD_KOR_NM"], gshape(f["geometry"]).buffer(0)))
+    dtree = STRtree([x[2] for x in dongs])
+from shapely.geometry import Polygon as SPoly, MultiPolygon as SMulti
 for item in items:
+    if dongs:  # 구역 넓이의 5% 이상이 걸친 동 (경계선이 살짝 스친 동은 빼요)
+        gl = SMulti([SPoly(r) for r in item["p"] if len(r) >= 4]).buffer(0)
+        item["d"] = sorted({dongs[i][0] + ":" + dongs[i][1] for i in dtree.query(gl) if dongs[i][2].intersection(gl).area >= 0.05 * gl.area})
     # 이름표 자리: 가장 큰 조각 안에서 경계와 가장 먼 점 (경위도로 바꿔 저장)
     g = item["_g"]; big = max(getattr(g, "geoms", [g]), key=lambda x: x.area)
     pt = polylabel(big, tolerance=2)

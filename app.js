@@ -131,6 +131,7 @@
       if (z.note) c.appendChild(el("p", "who", z.note));
       list.appendChild(c);
     });
+    if (!(AREA.zones || []).length) cityZones(list);
     if (L.length) $("#listings").insertBefore($("#listBlk"), $("#zoneBlk")); // 정리한 매물이 있으면 매물을 먼저 보여줘요
     $("#listBlk").hidden = !L.length && !AREA.listHint; // 정리한 매물이 없는 동에서는 빈 제목을 숨겨요
     $("#zoneHint").textContent = AREA.zoneHint || "";
@@ -140,6 +141,35 @@
     var up = window.CS_UPDATED, ft = AREA.foot || "";
     if (up && up.date) { var d = up.date.split("-"); ft += " 등록부를 마지막으로 다시 확인한 날: " + (+d[0]) + "년 " + (+d[1]) + "월 " + (+d[2]) + "일. 그 뒤 새로 생긴 곳과 사라진 곳은 카드에 표시돼요."; }
     $("#foot").textContent = ft;
+  }
+  // 정리해 둔 구역이 없는 동: 서울시 도시계획사업 자료(data/zones/<구>.json)에서 이 동에 걸친 구역을 모두 보여 줘요.
+  // 자료에 아직 경계가 없는 민간 도심복합 등(data/zones/extra.json)도 같이 넣어요.
+  function cityZones(list) {
+    var key = AREA.dong || ((AREA.id || "").match(/^d(\d{5})-(.+)$/) || []).slice(1).join(":"); if (!key || !window.fetch) return;
+    var gu = key.split(":")[0], dn = key.split(":")[1];
+    var get = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw r; return r.json(); }).catch(function () { return null; }); };
+    Promise.all([get("./data/zones/" + gu + ".json"), get("./data/zones/extra.json")]).then(function (res) {
+      var Z = res[0], E = res[1], rows = [];
+      ((Z && Z.z) || []).forEach(function (z) { if ((z.d || []).indexOf(key) >= 0) rows.push({ n: z.n, k: z.k, m2: z.m2, d: z.d }); });
+      ((E && E.z) || []).forEach(function (z) { if (z.gu === gu && z.at.split(" ")[0] === dn) rows.push({ n: z.n, k: z.k, src: z.src, url: z.url, loose: true }); });
+      var kindOf = function (k) { var t = k.map(function (x) { return x[0]; }).join(" "); return /도심|공공주택/.test(t) ? "도심공공·도심복합" : /모아타운|가로주택|자율주택|소규모/.test(t) ? "모아타운·소규모" : /재정비촉진|존치/.test(t) ? "재정비촉진" : /역세권|장기전세/.test(t) ? "역세권" : /재건축/.test(t) && !/재개발|신속/.test(t) ? "재건축" : "재개발·신통기획"; };
+      var order = ["재개발·신통기획", "재정비촉진", "도심공공·도심복합", "재건축", "모아타운·소규모", "역세권"];
+      rows.sort(function (a, b) { return order.indexOf(kindOf(a.k)) - order.indexOf(kindOf(b.k)) || (b.m2 || 0) - (a.m2 || 0); });
+      var hint = $("#zoneHint");
+      hint.textContent = rows.length ? dn + "에 걸친 재개발·재건축 구역 " + rows.length + "곳이에요. 서울시 자료(" + ((Z && Z.date) || "").replace(/^(\d{4})-(\d{2})$/, function (m, y, mo) { return y + "년 " + (+mo) + "월"; }) + ")의 사업 유형과 추진 단계예요. 지도 탭에서 경계를 볼 수 있어요." : dn + "에는 서울시 자료에 있는 재개발·재건축 구역이 없어요.";
+      rows.forEach(function (z) {
+        var c = el("article", "lt zone");
+        var h = el("div", "lt-head"); h.appendChild(el("h3", null, z.n)); h.appendChild(el("span", "zchip", kindOf(z.k))); c.appendChild(h);
+        z.k.forEach(function (x) { c.appendChild(el("p", "stage", x[0] + " · " + x[1])); });
+        var facts = [];
+        if (z.m2) facts.push("면적 " + z.m2.toLocaleString("ko-KR") + "㎡ (약 " + Math.round(z.m2 / 3.3058).toLocaleString("ko-KR") + "평)");
+        var other = (z.d || []).filter(function (x) { return x !== key; }).map(function (x) { return x.split(":")[1]; });
+        if (other.length) facts.push("옆 " + other.join("·") + "에도 걸쳐 있어요");
+        if (z.loose) facts.push("서울시 경계 자료에는 아직 없어요. 출처: " + z.src);
+        if (facts.length) { var ul = el("ul", "facts"); facts.forEach(function (f) { ul.appendChild(el("li", null, f)); }); c.appendChild(ul); }
+        list.appendChild(c);
+      });
+    });
   }
   function when(iso) {
     var d = new Date(iso); if (isNaN(d)) return "";
