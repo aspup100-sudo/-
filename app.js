@@ -275,7 +275,9 @@
     var d = (S.updated || "").split("-");
     $("#seoulHint").textContent = "서울시에 등록된 중개업소 " + S.total.toLocaleString("ko-KR") + "곳이에요" + (d.length === 3 ? " (" + (+d[1]) + "월 " + (+d[2]) + "일 기준)" : "") + ". " + (window.CS_GUMAP ? "약도에서 구를 누르고" : "구를 누르고") + " 동을 고르면 그 동의 중개업소가 지도와 함께 나와요.";
     var chips = $("#guChips"), list = $("#dongList"), search = $("#dongSearch"), cur = "";
-    try { cur = localStorage.getItem("cs-gu") || ""; } catch (e) {}
+    // 구를 고르면 서울 약도 대신 그 구 화면(주소 끝 #gu=구코드)으로 넘어가요. 뒤로 가기를 누르면 서울 약도로 돌아와요.
+    function guOfHash() { var m = /^#gu=(\d{5})$/.exec(location.hash || ""); return m ? m[1] : ""; }
+    cur = guOfHash();
     var zoned = {}; AREAS.order.forEach(function (id) { var a = AREAS[id]; if (a && a.data && a.dong) zoned[a.dong] = id; }); // 구역 정보까지 정리한 동
     function dongLink(g, dn) {
       var a = el("a", "chip dong", dn[0] + " " + dn[1]), z = zoned[g.code + ":" + dn[0]];
@@ -293,8 +295,14 @@
         list.appendChild(n ? box : el("p", "empty", "그런 이름의 동이 없어요."));
         return;
       }
-      var g = S.gu.filter(function (x) { return x.code === cur; })[0]; if (!g) return;
-      var grp = el("div", "grp"); grp.appendChild(el("span", null, g.name + " · 중개업소 " + g.n.toLocaleString("ko-KR") + "곳")); list.appendChild(grp);
+      var g = S.gu.filter(function (x) { return x.code === cur; })[0];
+      $("#home").classList.toggle("gu-on", !!g);
+      if (!g) return;
+      var back = el("button", "lkbtn gu-back", "‹ 서울 약도로"); back.type = "button";
+      back.addEventListener("click", function () { if (history.state && history.state.gu) history.back(); else pick(""); });
+      list.appendChild(back);
+      var hd = el("h2", "gu-title", g.name); list.appendChild(hd);
+      list.appendChild(el("p", "hint", "중개업소 " + g.n.toLocaleString("ko-KR") + "곳 · 동을 누르면 이름과 중개업소 수가 나오고, 한 번 더 누르면 그 동으로 가요."));
       var dm = el("div", "gumap dongmap"); dm.hidden = true; list.appendChild(dm); dongMap(g, dm);
       var bx = el("div", "chips"); g.dongs.forEach(function (dn) { bx.appendChild(dongLink(g, dn)); }); list.appendChild(bx);
     }
@@ -338,7 +346,12 @@
         box.appendChild(svg); box.appendChild(cap); box.hidden = false;
       }, function () {});
     }
-    function pick(code) { cur = cur === code ? "" : code; search.value = ""; try { localStorage.setItem("cs-gu", cur); } catch (e) {} show(); }
+    function pick(code) {
+      cur = code; search.value = "";
+      try { if (code) history.pushState({ gu: code }, "", "#gu=" + code); else history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+      show(); window.scrollTo(0, 0);
+    }
+    window.addEventListener("popstate", function () { cur = guOfHash(); search.value = ""; show(); window.scrollTo(0, 0); });
     S.gu.forEach(function (g) {
       var c = el("button", "chip", g.name); c.type = "button"; c.dataset.code = g.code; c.setAttribute("aria-pressed", "false");
       c.addEventListener("click", function () { pick(g.code); });

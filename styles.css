@@ -268,3 +268,8 @@ a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-w
 .dm-l.none{fill:var(--muted)}
 .dm-cap{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-top:6px;min-height:28px}
 .dm-cap span{font-variant-numeric:tabular-nums}
+
+/* 구 화면: 구를 고르면 서울 약도·최근 본 구역은 숨기고 그 구의 동 약도만 보여요 */
+#home.gu-on #seoulBlk>h2,#home.gu-on #seoulHint,#home.gu-on #dongSearch,#home.gu-on #guMap,#home.gu-on #guChips,#home.gu-on #recentBlk,#home.gu-on #askHomeSlot,#home.gu-on .legend{display:none}
+.gu-back{margin:0 0 6px}
+.gu-title{margin:0 0 2px}
