@@ -122,14 +122,14 @@
     return out;
   }
   function drawZones(kakao) {
-    var kinds = {}, anySoft = false, anyCircle = false, zoneLabels = [], labelsOn = map.getLevel() <= 5, mine = {};
+    var kinds = {}, anySoft = false, anyLoose = false, zoneLabels = [], labelsOn = map.getLevel() <= 5, mine = {};
     // 멀리서 보면 구역 이름표가 겹쳐서, 어느 정도 확대했을 때만 이름표를 보여요.
     kakao.maps.event.addListener(map, "zoom_changed", function () {
       var on = map.getLevel() <= 5; if (on === labelsOn) return; labelsOn = on;
       zoneLabels.forEach(function (o) { o.setMap(on ? map : null); });
     });
-    function label(text, ll, col) {
-      var lab = document.createElement("span"); lab.className = "zlabel"; lab.textContent = text; lab.style.color = col;
+    function label(text, ll, col, loose) {
+      var lab = document.createElement("span"); lab.className = "zlabel" + (loose ? " loose" : ""); lab.textContent = text; lab.style.color = col;
       var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0 }); zoneLabels.push(lo);
       if (labelsOn) lo.setMap(map);
     }
@@ -147,7 +147,7 @@
       var leg = $("#zoneLegend"); if (!Object.keys(kinds).length) return;
       leg.textContent = "";
       Object.keys(kinds).forEach(function (name) { var sp = document.createElement("span"); sp.className = "zl"; var ic = document.createElement("i"); ic.style.background = kinds[name]; sp.appendChild(ic); sp.appendChild(document.createTextNode(name)); leg.appendChild(sp); });
-      leg.appendChild(document.createTextNode((anySoft ? "점선은 아직 추진 초기 단계(후보지 신청·연번부여 등)예요. " : "") + (anyCircle ? "원은 경계 자료가 없는 구역의 대략적인 위치와 크기예요. " : "") + "구역을 누르면 이름과 단계가 나와요. " + srcNote));
+      leg.appendChild(document.createTextNode((anySoft ? "점선은 아직 추진 초기 단계(후보지 신청·연번부여 등)예요. " : "") + (anyLoose ? "'경계 미정'은 아직 경계가 정해지지 않은 후보지 전 단계 구역이라 이름만 대략적인 자리에 적었어요. " : "") + "구역을 누르면 이름과 단계가 나와요. " + srcNote));
       leg.hidden = false;
     }
     var real = guCode ? fetch("./data/zones/" + guCode + ".json").then(function (r) { if (!r.ok) throw r; return r.json(); }).catch(function () { return null; }) : Promise.resolve(null);
@@ -158,7 +158,7 @@
         var dd = (Z.date || "").split("-");
         srcNote = "경계선 출처: " + Z.src + (dd.length === 2 ? ", " + dd[0] + "년 " + (+dd[1]) + "월 자료" : "") + ". 법적 효력은 없는 참고 자료예요.";
         Z.z.forEach(function (z) {
-          var my = mine[z.id], kind = realKind(z.k), col = KIND_COL[kind], soft = early(z.k), sum = [0, 0, 0];
+          var my = mine[z.id], kind = realKind(z.k), col = KIND_COL[kind], soft = early(z.k);
           kinds[kind] = col; if (soft) anySoft = true;
           ringsOf(z.p).forEach(function (path) {
             var poly = new kakao.maps.Polygon({ path: path, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.85, strokeStyle: soft ? "shortdash" : "solid", fillColor: col, fillOpacity: my ? 0.18 : 0.1 });
@@ -168,19 +168,13 @@
               showTip(e, my ? my.name : z.n, z.k.map(function (x) { return x[0] + " · " + x[1]; }).concat(z.m2 ? ["면적 " + z.m2.toLocaleString("ko-KR") + "㎡"] : []));
             });
           });
-          z.p[0].forEach(function (q) { sum[0] += q[1]; sum[1] += q[0]; sum[2]++; });
-          label(my ? (my.short || my.name) : z.n.replace(/\s*(주택재개발사업|가로주택정비사업|소규모재건축정비사업|정비사업)$/, ""), new kakao.maps.LatLng(sum[0] / sum[2], sum[1] / sum[2]), col);
+          label(my ? (my.short || my.name) : z.n.replace(/\s*(주택재개발사업|가로주택정비사업|소규모재건축정비사업|정비사업)$/, ""), new kakao.maps.LatLng(z.c[1], z.c[0]), col);
         });
       }
-      // 경계 자료에 아직 없는 구역(후보지 전 단계 등)은 예전처럼 대략적인 원으로
+      // 경계 자료에 아직 없는 구역(후보지 전 단계 등)은 경계가 정해지지 않아서 선 없이 이름만 대략적인 자리에 보여요
       zoneInfo.forEach(function (z) {
         if (z.upis && Z && Z.z && Z.z.some(function (x) { return x.id === z.upis; })) return;
-        var col = zoneColor(z.kind), ll = new kakao.maps.LatLng(z.c[0], z.c[1]); anyCircle = true;
-        var circle = new kakao.maps.Circle({ center: ll, radius: z.r, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.75, strokeStyle: "shortdash", fillColor: col, fillOpacity: 0.08 });
-        circle.setMap(map);
-        kakao.maps.event.addListener(circle, "click", function (e) { if (onMapClick) onMapClick(e); showTip(e, z.short, [z.kind, "경계 자료 없음 (대략적인 위치)"]); });
-        label(z.short, ll, col);
-        var kn = /도심/.test(z.kind) ? "도심공공" : /모아타운/.test(z.kind) ? "모아타운·소규모" : "재개발·신통기획"; kinds[kn] = KIND_COL[kn]; anySoft = anySoft || z.soft;
+        anyLoose = true; label(z.short + " (경계 미정)", new kakao.maps.LatLng(z.c[0], z.c[1]), "#5B6663", true);
       });
       legend(srcNote);
     });
