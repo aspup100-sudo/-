@@ -23,6 +23,21 @@
     geo: function (id) { return cache.p[id] || null; },
     done: function () { return geoDone; },
     onGeo: function (f) { geoWaiters.push(f); },
+    // 주소(예: "서울 성북구 길음동 123-4")를 좌표로. 실거래 위치를 구역 안팎으로 가를 때 써요. 기기에 30일 기억해요.
+    addr: function (q) {
+      var k = "a:" + q;
+      if (cache.p[k]) return Promise.resolve(cache.p[k]);
+      if (cache.miss[k]) return Promise.resolve(null);
+      return sdk.then(function (kakao) {
+        return new Promise(function (res) {
+          new kakao.maps.services.Geocoder().addressSearch(q, function (r, st) {
+            if (st === kakao.maps.services.Status.OK && r[0]) { cache.p[k] = [+r[0].y, +r[0].x]; res(cache.p[k]); }
+            else { if (st === kakao.maps.services.Status.ZERO_RESULT) cache.miss[k] = 1; res(null); }
+          });
+        });
+      });
+    },
+    save: function () { saveCache(); },
     // 역 이름 같은 장소를 좌표로 (동선 출발점용)
     place: function (name) {
       var k = "st:" + name;

@@ -150,7 +150,7 @@
     var get = function (u) { return fetch(u).then(function (r) { if (!r.ok) throw r; return r.json(); }).catch(function () { return null; }); };
     Promise.all([get("./data/zones/" + gu + ".json"), get("./data/zones/extra.json")]).then(function (res) {
       var Z = res[0], E = res[1], rows = [];
-      ((Z && Z.z) || []).forEach(function (z) { if ((z.d || []).indexOf(key) >= 0) rows.push({ n: z.n, k: z.k, m2: z.m2, d: z.d }); });
+      ((Z && Z.z) || []).forEach(function (z) { if ((z.d || []).indexOf(key) >= 0) rows.push({ n: z.n, k: z.k, m2: z.m2, d: z.d, p: z.p }); });
       ((E && E.z) || []).forEach(function (z) { if (z.gu === gu && z.at.split(" ")[0] === dn) rows.push({ n: z.n, k: z.k, src: z.src, url: z.url, loose: true }); });
       var kindOf = function (k) { var t = k.map(function (x) { return x[0]; }).join(" "); return /도심|공공주택/.test(t) ? "도심공공·도심복합" : /모아타운|가로주택|자율주택|소규모/.test(t) ? "모아타운·소규모" : /재정비촉진|존치/.test(t) ? "재정비촉진" : /역세권|장기전세/.test(t) ? "역세권" : /재건축/.test(t) && !/재개발|신속/.test(t) ? "재건축" : "재개발·신통기획"; };
       var order = ["재개발·신통기획", "재정비촉진", "도심공공·도심복합", "재건축", "모아타운·소규모", "역세권"];
@@ -167,7 +167,67 @@
         if (other.length) facts.push("옆 " + other.join("·") + "에도 걸쳐 있어요");
         if (z.loose) facts.push("서울시 경계 자료에는 아직 없어요. 출처: " + z.src);
         if (facts.length) { var ul = el("ul", "facts"); facts.forEach(function (f) { ul.appendChild(el("li", null, f)); }); c.appendChild(ul); }
+        if (z.p) { // 누르면 이 구역 안 실거래가 펼쳐져요
+          var bt = el("button", "lkbtn deal-btn", "이 구역 실거래 보기 ›"); bt.type = "button"; bt.setAttribute("aria-expanded", "false");
+          var pane = el("div", "deals"); pane.hidden = true;
+          bt.addEventListener("click", function () {
+            var open = pane.hidden; pane.hidden = !open; bt.setAttribute("aria-expanded", String(open)); bt.textContent = open ? "실거래 접기 ‹" : "이 구역 실거래 보기 ›";
+            if (open && !pane.dataset.done) { pane.dataset.done = "1"; showDeals(z, pane); }
+          });
+          c.appendChild(bt); c.appendChild(pane);
+        }
         list.appendChild(c);
+      });
+    });
+  }
+  // 실거래: data/deals/<구코드>.json (서울시 부동산 실거래가 정보, tools/build-deals.py)에서 구역이 걸친 동의 거래를 꺼내,
+  // 지번을 카카오로 좌표로 바꾼 뒤 구역 경계 안에 드는 것만 보여 줘요. 지번이 가려진 거래(단독·다가구 등)는 위치를 몰라 빼요.
+  var dealFiles = {};
+  function dealFile(g) { return dealFiles[g] || (dealFiles[g] = fetch("./data/deals/" + g + ".json").then(function (r) { if (!r.ok) throw r; return r.json(); }).catch(function () { delete dealFiles[g]; return null; })); }
+  function inRings(ll, rings) { // ll = [위도, 경도], rings = [[[경도, 위도], ...]] (짝수 번 걸치면 구멍)
+    var x = ll[1], y = ll[0], o = false;
+    rings.forEach(function (r) { for (var i = 0, j = r.length - 1; i < r.length; j = i++) { var a = r[i], b = r[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) o = !o; } });
+    return o;
+  }
+  function won(v) { var e = Math.floor(v / 10000), m = v % 10000; return (e ? e + "억" : "") + (m ? (e ? " " : "") + m.toLocaleString("ko-KR") + "만" : ""); }
+  function showDeals(z, pane) {
+    var M = window.CS_MAP, msg = el("p", "hint", "실거래를 불러오는 중이에요."); pane.appendChild(msg);
+    var byGu = {}; (z.d || []).forEach(function (k) { var p = k.split(":"); (byGu[p[0]] = byGu[p[0]] || []).push(p[1]); });
+    Promise.all(Object.keys(byGu).map(function (g) { return dealFile(g).then(function (f) { return { g: g, f: f }; }); })).then(function (got) {
+      var cand = [], meta = null;
+      got.forEach(function (x) { if (!x.f) return; meta = x.f; byGu[x.g].forEach(function (dn) { ((x.f.d || {})[dn] || []).forEach(function (r) { cand.push({ gu: x.f.gu, dn: dn, r: r }); }); }); });
+      if (!meta) { msg.textContent = "실거래 자료를 아직 넣지 않았어요. 곧 채워 넣을게요."; return; }
+      if (!M || !M.addr) { msg.textContent = "지도를 불러오지 못해서 구역 안 거래를 가르지 못했어요."; return; }
+      var hidden = cand.filter(function (c) { return !c.r[7]; }).length; cand = cand.filter(function (c) { return c.r[7]; });
+      var keys = {}; cand.forEach(function (c) { keys[c.gu + " " + c.dn + " " + c.r[7]] = 1; });
+      var qs = Object.keys(keys), pos = {}, i = 0, done = 0;
+      msg.textContent = "거래 " + cand.length + "건의 위치를 확인하는 중이에요 (0/" + qs.length + ").";
+      function next() {
+        if (i >= qs.length) return Promise.resolve();
+        var q = qs[i++];
+        return M.addr("서울 " + q).then(function (ll) { pos[q] = ll; done++; if (done % 10 === 0) msg.textContent = "거래 " + cand.length + "건의 위치를 확인하는 중이에요 (" + done + "/" + qs.length + ")."; return next(); });
+      }
+      Promise.all([next(), next(), next(), next()]).then(function () {
+        M.save();
+        var rows = cand.filter(function (c) { var ll = pos[c.gu + " " + c.dn + " " + c.r[7]]; return ll && inRings(ll, z.p); });
+        rows.sort(function (a, b) { return b.r[0] < a.r[0] ? -1 : 1; });
+        var dd = (meta.date || "").split("-");
+        msg.textContent = rows.length ? "이 구역 안 실거래 " + rows.length + "건이에요 (" + meta.from + "년부터 " + (dd.length === 3 ? dd[0] + "년 " + (+dd[1]) + "월 " + (+dd[2]) + "일 계약" : "") + "까지)." + (hidden ? " 지번이 가려진 " + hidden + "건은 위치를 몰라 뺐어요." : "") : "이 구역 안에서 확인된 실거래가 없어요." + (hidden ? " 지번이 가려진 " + hidden + "건은 위치를 몰라 뺐어요." : "");
+        var ul = el("ul", "deal-list");
+        rows.forEach(function (c) {
+          var r = c.r, li = el("li", "deal");
+          var top = el("div", "deal-top"); top.appendChild(el("b", null, won(r[2]))); top.appendChild(el("span", "deal-t", r[1])); top.appendChild(el("span", "deal-d", r[0].slice(0, 4) + "." + r[0].slice(4, 6) + "." + r[0].slice(6, 8))); li.appendChild(top);
+          var bits = [];
+          if (r[3]) bits.push("건물 " + r[3] + "㎡");
+          if (r[4]) bits.push("대지 " + r[4] + "㎡ (" + (r[4] / 3.3058).toFixed(1) + "평, 평당 " + won(Math.round(r[2] / (r[4] / 3.3058))) + ")");
+          if (r[5]) bits.push(r[5] + "층");
+          if (r[6]) bits.push(r[6] + "년 지음");
+          bits.push(c.dn + " " + r[7] + (r[8] ? " " + r[8] : ""));
+          li.appendChild(el("p", "deal-s", bits.join(" · ")));
+          ul.appendChild(li);
+        });
+        pane.appendChild(ul);
+        pane.appendChild(el("p", "hint", "출처: " + (meta.src || "") + ". 대지는 토지면적(공동주택은 대지권 면적)이에요."));
       });
     });
   }
