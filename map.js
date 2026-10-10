@@ -78,7 +78,7 @@
       clearShape();
       pts.forEach(function (p) { var v = document.createElement("span"); v.className = "vx"; var o = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(p[0], p[1]), content: v, xAnchor: 0.5, yAnchor: 0.5 }); o.setMap(map); marks.push(o); });
       if (pts.length >= 2) {
-        shape = new kakao.maps.Polygon({ path: pathOf(pts).map(function (p) { return new kakao.maps.LatLng(p[0], p[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.9, fillColor: "#B4541A", fillOpacity: 0.12 });
+        shape = new kakao.maps.Polygon({ path: pathOf(pts).map(function (p) { return new kakao.maps.LatLng(p[0], p[1]); }), strokeWeight: 3, strokeColor: "#B4541A", strokeOpacity: 0.95, fillColor: "#F2A65A", fillOpacity: 0.3 });
         shape.setMap(map);
       }
     }
