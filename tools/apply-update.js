@@ -86,6 +86,25 @@ function asks(p, date, log) {
 const HEAD = "// 자동으로 만들어지는 파일이에요 (tools/apply-update.js). 재개발닷컴 구역별 매물 표의 유형과 호가만 담아요.\n// rows: [유형, 호가(만원), 처음 본 날(없으면 추적 시작 전부터 있던 것)]\n";
 function won(v) { const e = Math.floor(v / 10000), m = v % 10000; return (e ? e + "억" : "") + (m ? (e ? " " : "") + m.toLocaleString("ko-KR") + "만" : ""); }
 
+// 실거래: data/deals/<구코드>.json 에 새 거래를 넣고 취소된 거래를 빼요 (브라우저 조각 DEALS_DIFF의 결과)
+function deals(p, date, log) {
+  const dir = path.join(ROOT, "data", "deals"); fs.mkdirSync(dir, { recursive: true });
+  const codes = new Set(Object.keys(p.add || {}).concat(Object.keys(p.del || {})));
+  codes.forEach(code => {
+    const file = path.join(dir, code + ".json");
+    let d; try { d = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) { d = { src: "서울 열린데이터광장 '서울시 부동산 실거래가 정보'", date: "", from: +date.slice(0, 4), gu: (p.add[code] || {}).gu || "", d: {} }; }
+    const key = (dn, r) => [dn].concat(r).join("|");
+    let nA = 0, nD = 0;
+    ((p.add[code] || {}).rows || []).forEach(x => { const dn = x[0], r = x.slice(1); const list = d.d[dn] = d.d[dn] || []; if (!list.some(o => key(dn, o) === key(dn, r))) { list.push(r); nA++; } });
+    (p.del[code] || []).forEach(x => { const dn = x[0], k = key(dn, x.slice(1)); const list = d.d[dn] || []; const i = list.findIndex(o => key(dn, o) === k); if (i >= 0) { list.splice(i, 1); nD++; } });
+    Object.keys(d.d).forEach(dn => d.d[dn].sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0)));
+    const last = Object.values(d.d).flat().reduce((m, r) => (r[0] > m ? r[0] : m), "");
+    if (last) d.date = last.slice(0, 4) + "-" + last.slice(4, 6) + "-" + last.slice(6);
+    fs.writeFileSync(file, JSON.stringify(d));
+    if (nA || nD) log.push(`[실거래 ${d.gu}] 새 거래 ${nA}건, 취소 ${nD}건`);
+  });
+}
+
 module.exports = { nameOf, phoneOf, queryOf, won, HEAD, fnv }; // build-seoul.js가 가져다 써요 (아래 실행 부분보다 먼저 내보내야 함)
 
 // 브라우저가 돌려준 결과는 { "sum": "8자리", "patch": {...} } 봉투에 담겨 와요.
@@ -109,6 +128,7 @@ if (require.main === module) {
   if (patch.seoul) require("./build-seoul.js").applyPatch(patch.seoul, date, log);
   Object.keys(patch.brokers || {}).forEach(a => { if (AREAS[a]) brokers(a, patch.brokers[a], date, log); });
   if (patch.asks) asks(patch.asks, date, log);
+  if (patch.deals) deals(patch.deals, date, log);
   // 화면에 보이는 "마지막 확인" 날짜. 같은 날 두 번째 실행이 한쪽만 확인했어도, 앞서 확인한 쪽 표시는 남겨요.
   let prev = {}; try { const w = {}; new Function("window", fs.readFileSync(path.join(ROOT, "updated.js"), "utf8"))(w); prev = w.CS_UPDATED || {}; } catch (e) {}
   const same = prev.date === date;

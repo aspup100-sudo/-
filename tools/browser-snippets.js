@@ -111,3 +111,27 @@
   // "info"는 보고용, "envelope"는 파일로 그대로 옮겨 적을 내용 (sum으로 옮겨 적기 실수를 잡아요)
   return JSON.stringify({ info: { loggedIn, suspicious, zones: zones.length, before: oldN, now: nowN, added: addN, removed: delN, failed }, envelope: { sum, patch } });
 })();
+
+
+// ---- DEALS_FULL ----
+// 처음 한 번만(사용자가 다운로드 폴더 저장을 허락함, 2026-10-10). 실행 위치: http://openapi.seoul.go.kr:8088/<인증키>/json/tbLnOpendataRtmsV/1/1/
+// 2024년부터 접수된 서울 부동산 실거래를 모두 받아, 줄마다 값만 담은 deals-full-날짜.json 하나를 다운로드 폴더에 저장해요.
+// 그 파일은 tools/build-deals.py 로 data/deals/*.json 을 만드는 데 써요.
+// 시간이 모자라 info.more가 true면 같은 조각을 다시 실행해요(받은 것은 브라우저가 기억해요). 다 받으면 info.saved에 파일 이름이 나와요.
+(async () => {
+  const K = location.pathname.split("/")[1], t0 = Date.now(), FROM = 2024, NOW = new Date().getFullYear();
+  window.__deal = window.__deal || {}; window.__dealTot = window.__dealTot || {};
+  const get = async (y, s) => { const r = await fetch("/" + K + "/json/tbLnOpendataRtmsV/" + s + "/" + (s + 999) + "/" + y); const j = await r.json(); const b = j.tbLnOpendataRtmsV; if (!b) throw new Error("응답이 이상해요: " + JSON.stringify(j).slice(0, 150)); window.__dealTot[y] = b.list_total_count; return b.row || []; };
+  for (let y = FROM; y <= NOW && Date.now() - t0 < 40000; y++) {
+    if (!window.__dealTot[y]) window.__deal[y + ":1"] = await get(y, 1);
+    const starts = []; for (let s = 1001; s <= window.__dealTot[y]; s += 1000) if (!window.__deal[y + ":" + s]) starts.push(s);
+    for (let i = 0; i < starts.length && Date.now() - t0 < 40000; i += 8) { const part = starts.slice(i, i + 8); const res = await Promise.all(part.map(s => get(y, s))); part.forEach((s, k) => { window.__deal[y + ":" + s] = res[k]; }); }
+  }
+  let need = 0; for (let y = FROM; y <= NOW; y++) need += window.__dealTot[y] ? Math.ceil(window.__dealTot[y] / 1000) : 1;
+  if (Object.keys(window.__deal).length < need) return JSON.stringify({ info: { more: true, pages: Object.keys(window.__deal).length, need } });
+  const all = Object.values(window.__deal).flat(), fields = Object.keys(all[0] || {});
+  const out = { from: FROM, got: new Date().toISOString(), total: window.__dealTot, fields, rows: all.map(r => fields.map(f => r[f])) };
+  const name = "deals-full-" + new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10) + ".json";
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: "application/json" })); a.download = name; document.body.appendChild(a); a.click();
+  return JSON.stringify({ info: { saved: name, rows: all.length, total: window.__dealTot, fields } });
+})();
