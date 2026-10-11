@@ -150,9 +150,23 @@
       if (rg) { var pg = new kakao.maps.Polygon({ path: rg.poly.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.8, fillColor: "#F2A65A", fillOpacity: 0.1 }); pg.setMap(rmap); drawn.push(pg); }
       if (way) line = way.line.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }); // 실제 걷는 길 모양
       var pl = new kakao.maps.Polyline({ path: line, strokeWeight: 4, strokeColor: "#0B6E5F", strokeOpacity: 0.85, strokeStyle: way ? "solid" : "shortdash" }); pl.setMap(rmap); drawn.push(pl);
-      rmap.relayout(); rmap.setBounds(b, 30, 30, 30, 30);
+      rmap.relayout(); rmap.setBounds(b, 30, 30, 30, 30); lastB = b;
     }).catch(function () { $("#rmapBox").hidden = true; });
   }
+
+  // 동선 지도 전체 화면: 화면 가득 펼쳐서 자세히 보고, 닫기·뒤로 가기·Esc로 돌아와요
+  var lastB = null, fsBox = $("#rmapBox"), fsBtn = $("#rmapFs");
+  function fit() { if (!rmap) return; setTimeout(function () { rmap.relayout(); if (lastB) rmap.setBounds(lastB, 30, 30, 30, 30); }, 60); }
+  function setFs(on, fromPop) {
+    if (fsBox.classList.contains("fs") === on) return;
+    fsBox.classList.toggle("fs", on); document.body.classList.toggle("fs-lock", on);
+    fsBtn.textContent = on ? "✕ 닫기" : "⛶ 전체 화면"; fsBtn.setAttribute("aria-pressed", String(on));
+    try { if (on) history.pushState({ rfs: 1 }, ""); else if (!fromPop && history.state && history.state.rfs) history.back(); } catch (e) {}
+    fit();
+  }
+  fsBtn.addEventListener("click", function () { setFs(!fsBox.classList.contains("fs")); });
+  window.addEventListener("popstate", function () { setFs(false, true); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") setFs(false); });
 
   // 한꺼번에 담기: 지도에서 영역을 그리거나, 재개발 구역 주변을 고르거나
   var note = $("#rtNote"), selZone = $("#rtZone"), btnClear = $("#rtClear");
