@@ -109,7 +109,11 @@
     });
     var e = el("p", "empty", "조건에 맞는 중개업소가 없어요."); e.id = "emptyB"; e.hidden = true; list.appendChild(e);
   }
+  // 매물(후보 매물·예산으로 매물 찾기)은 잠시 꺼 두고, 모든 동에서 서울시 구역 정보와 실거래만 보여줘요.
+  // 다시 보이게 하려면 true로 바꾸면 돼요 (창신·구의에 정리해 둔 매물·구역 설명이 그대로 남아 있어요).
+  var SHOW_LISTINGS = false;
   function buildListings() {
+    if (!SHOW_LISTINGS) return;
     var list = $("#listingList");
     L.forEach(function (x) {
       var c = el("article", "lt"); c.dataset.id = x.id;
@@ -130,7 +134,7 @@
   }
   function buildZones() {
     var list = $("#zoneList");
-    (AREA.zones || []).forEach(function (z) {
+    (SHOW_LISTINGS ? AREA.zones || [] : []).forEach(function (z) {
       var c = el("article", "lt zone");
       var h = el("div", "lt-head"); h.appendChild(el("h3", null, z.name)); h.appendChild(el("span", "zchip", z.kind)); c.appendChild(h);
       c.appendChild(el("p", "stage", z.stage));
@@ -138,13 +142,13 @@
       if (z.note) c.appendChild(el("p", "who", z.note));
       list.appendChild(c);
     });
-    if (!(AREA.zones || []).length) cityZones(list);
-    if (L.length) $("#listings").insertBefore($("#listBlk"), $("#zoneBlk")); // 정리한 매물이 있으면 매물을 먼저 보여줘요
-    $("#listBlk").hidden = !L.length && !AREA.listHint; // 정리한 매물이 없는 동에서는 빈 제목을 숨겨요
-    $("#zoneHint").textContent = AREA.zoneHint || "";
+    if (!SHOW_LISTINGS || !(AREA.zones || []).length) cityZones(list);
+    if (SHOW_LISTINGS && L.length) $("#listings").insertBefore($("#listBlk"), $("#zoneBlk")); // 정리한 매물이 있으면 매물을 먼저 보여줘요
+    $("#listBlk").hidden = !SHOW_LISTINGS || (!L.length && !AREA.listHint); // 정리한 매물이 없는 동에서는 빈 제목을 숨겨요
+    $("#zoneHint").textContent = SHOW_LISTINGS ? AREA.zoneHint || "" : "";
     $("#listHint").textContent = AREA.listHint || "";
     (AREA.ask || []).forEach(function (q) { $("#askList").appendChild(el("li", null, q)); });
-    if (AREA.excluded && AREA.excluded.length) { $("#excludedBox").hidden = false; AREA.excluded.forEach(function (x) { $("#excludedList").appendChild(el("li", null, x)); }); }
+    if (SHOW_LISTINGS && AREA.excluded && AREA.excluded.length) { $("#excludedBox").hidden = false; AREA.excluded.forEach(function (x) { $("#excludedList").appendChild(el("li", null, x)); }); }
     var up = window.CS_UPDATED, ft = AREA.foot || "";
     if (up && up.date) { var d = up.date.split("-"); ft += " 등록부를 마지막으로 다시 확인한 날: " + (+d[0]) + "년 " + (+d[1]) + "월 " + (+d[2]) + "일. 그 뒤 새로 생긴 곳과 사라진 곳은 카드에 표시돼요."; }
     $("#foot").textContent = ft;
@@ -497,6 +501,7 @@
       return n;
     },
     showTab: function (n) { showTab(n); },
+    showListings: SHOW_LISTINGS,
     setRegion: function (fn) { regionFn = fn || null; applyFilter(); },
     onRegionOff: function (f) { regionOff.push(f); },
     status: function (id) { return (store[id] || {}).status || ""; },

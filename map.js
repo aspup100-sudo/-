@@ -77,6 +77,7 @@
   // 영역으로 고르기: 지도를 눌러 꼭짓점을 찍으면 그 안의 중개업소만 목록에 남아요. 2곳이면 네모, 3곳부터는 찍은 모양.
   var wired = false, drawing = false, pts = [], shape = null, marks = [], active = false;
   var pendingPick = null, startDraw = null; // 동선 탭의 "영역 그려 한꺼번에 담기"가 쓰는 것
+  var regionPoly = null; // 지금 걸러 보고 있는 영역 (동선 탭이 이어받아요)
   function pathOf(p) { return p.length === 2 ? [[p[0][0], p[0][1]], [p[0][0], p[1][1]], [p[1][0], p[1][1]], [p[1][0], p[0][1]]] : p; }
   function inside(pt, poly) {
     var c = false;
@@ -253,7 +254,7 @@
       else if (active) { var n = A.all().filter(function (b) { return A.visible(b); }).length; msg.textContent = n ? "영역 안 " + n + "곳만 보는 중" : "영역 안에 보이는 중개업소가 없어요. 영역을 해제하고 다시 그려보세요."; }
       else msg.textContent = "";
     }
-    function off() { active = false; drawing = false; pts = []; pendingPick = null; clearShape(); ui(); }
+    function off() { active = false; drawing = false; pts = []; pendingPick = null; regionPoly = null; clearShape(); ui(); }
     startDraw = function () { if (active) { off(); A.setRegion(null); } drawing = true; pts = []; lastKey = ""; ui(); };
     var lastAt = 0, lastKey = "";
     onMapClick = function (e) { // 지도, 구역 원, 그리던 도형 어디를 눌러도 꼭짓점이 찍히게 (같은 클릭이 두 번 들어오면 한 번만)
@@ -276,7 +277,7 @@
         var cb = pendingPick, ids = A.all().filter(function (b) { var ll = cache.p[b[0]]; return !!ll && inside(ll, poly); }).map(function (b) { return b[0]; });
         off(); cb(ids); return;
       }
-      drawing = false; active = true;
+      drawing = false; active = true; regionPoly = poly;
       marks.forEach(function (m) { m.setMap(null); }); marks = [];
       A.setRegion(function (id) { var ll = cache.p[id]; return !!ll && inside(ll, poly); });
       ui();
@@ -509,6 +510,12 @@
     }, { useMapBounds: true });
   }
 
+  // 중개업소 탭에서 영역으로 보는 중이면 그 영역과 안에 있는 중개업소 id들 (아니면 null)
+  window.CS_MAP.region = function () {
+    if (!active || !regionPoly) return null;
+    var poly = regionPoly;
+    return { key: JSON.stringify(poly), poly: poly, ids: A.all().filter(function (b) { var ll = cache.p[b[0]]; return !!ll && inside(ll, poly); }).map(function (b) { return b[0]; }) };
+  };
   window.CS_MAP.pickByRegion = function (cb) { // 지도 탭으로 가서 영역을 그리게 하고, 완료하면 안에 있는 중개업소 id들을 cb로 넘겨요
     sdk.then(function () {
       A.showTab("brokers");

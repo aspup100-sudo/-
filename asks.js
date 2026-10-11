@@ -4,6 +4,7 @@
   var A = window.CS_APP, D = window.CS_ASKS, AREAS = window.CS_AREAS || { order: [] };
   var tpl = document.getElementById("askTpl"); if (!A || !D || !tpl) return;
   if (!A.area) return; // 첫 화면에는 보이지 않고, 호가를 넣은 동 화면에서만 보여요
+  if (!A.showListings) return; // 매물은 잠시 꺼 뒀어요 (app.js의 SHOW_LISTINGS)
   var slot = document.getElementById("askAreaSlot"); if (!slot) return;
   if (A.area && !((D.areas || {})[A.area.id] || []).length) return; // 호가를 넣지 않은 동에서는 이 칸을 숨겨요
   slot.appendChild(tpl.content.cloneNode(true));

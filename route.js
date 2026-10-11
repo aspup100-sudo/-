@@ -117,6 +117,8 @@
         var n = document.createElement("span"); n.className = "pin"; n.textContent = String(i + 1); n.title = p.name;
         var o = new kakao.maps.CustomOverlay({ position: ll, content: n, yAnchor: 0.5 }); o.setMap(rmap); drawn.push(o);
       });
+      var rg = M.region && M.region(); // 중개업소 탭에서 고른 영역도 같이 그려요
+      if (rg) { var pg = new kakao.maps.Polygon({ path: rg.poly.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.8, fillColor: "#F2A65A", fillOpacity: 0.1 }); pg.setMap(rmap); drawn.push(pg); }
       var pl = new kakao.maps.Polyline({ path: line, strokeWeight: 4, strokeColor: "#0B6E5F", strokeOpacity: 0.85, strokeStyle: "solid" }); pl.setMap(rmap); drawn.push(pl);
       rmap.relayout(); rmap.setBounds(b, 30, 30, 30, 30);
     }).catch(function () { $("#rmapBox").hidden = true; });
@@ -162,7 +164,16 @@
   selStart.addEventListener("change", function () { try { localStorage.setItem("cs-rt-start-" + area.id, selStart.value); } catch (e) {} if (selStart.value === "me") askHere(); else { hereNote.hidden = true; render(); } });
   if (selStart.value === "me") askHere();
   selDwell.addEventListener("change", function () { try { localStorage.setItem("cs-rt-dwell", selDwell.value); } catch (e) {} render(); });
-  A.onChange(function (what) { if (what !== "") render(); });
+  // 중개업소 탭에서 영역을 골라 둔 채 동선 탭으로 오면, 그 영역 안의 중개업소를 바로 동선에 담아요 (같은 영역은 한 번만).
+  var takenKey = "";
+  function takeRegion() {
+    var r = M && M.region && M.region(); if (!r || r.key === takenKey) return;
+    takenKey = r.key; if (!r.ids.length) return;
+    var n = A.setPicks(r.ids, true);
+    tell("중개업소 탭에서 고른 영역 안 " + r.ids.length + "곳" + (n < r.ids.length ? " (새로 담은 곳 " + n + ")" : "") + "을 동선에 담았어요. 빼려면 각 줄의 '빼기'나 '모두 빼기'를 누르세요.");
+  }
+  A.onChange(function (what) { if (what === "tab:route") takeRegion(); if (what !== "") render(); });
+  if (A.tab() === "route") takeRegion();
   if (M) M.onGeo(render);
   render();
 })();
