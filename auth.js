@@ -79,7 +79,9 @@
       .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.token) throw j; return j; }); })
       .then(function (j) { return sync.auth.signInKakao(j.token, j.nick); })
       .then(function () { kkErr.textContent = ""; if (kkBack) location.reload(); }, function (x) { // 보던 구역이 있었으면 그 주소로 다시 열어요
-        kkErr.textContent = x && x.code === "auth/network-request-failed" ? ERR[x.code] : "카카오 로그인이 잘 안 됐어요. 잠시 뒤에 다시 해주세요.";
+        var why = x ? [x.error, x.detail, x.code].filter(Boolean).join(" ") : ""; // 원인 확인용 짧은 코드 (예: kakao-token KOE010)
+        kkErr.textContent = (x && x.code === "auth/network-request-failed" ? ERR[x.code] : "카카오 로그인이 잘 안 됐어요. 잠시 뒤에 다시 해주세요.") + (why ? " (" + why + ")" : "");
+        if (x) console.error("kakao login", x);
       }).then(function () { b.disabled = false; kkCode = null; });
   }
   vf.addEventListener("submit", function (e) {
