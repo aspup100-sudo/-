@@ -164,7 +164,11 @@
       var leg = $("#zoneLegend"); if (!Object.keys(kinds).length) return;
       leg.textContent = "";
       Object.keys(kinds).forEach(function (name) { var sp = document.createElement("span"); sp.className = "zl"; var ic = document.createElement("i"); ic.style.background = kinds[name]; sp.appendChild(ic); sp.appendChild(document.createTextNode(name)); leg.appendChild(sp); });
-      leg.appendChild(document.createTextNode((anySoft ? "점선은 아직 추진 초기 단계(후보지 신청·연번부여 등)예요. " : "") + (anyLoose ? "'경계 미정'은 아직 경계가 정해지지 않은 후보지 전 단계 구역이라 이름만 대략적인 자리에 적었어요. " : "") + "구역을 누르면 이름과 단계가 나와요. " + srcNote));
+      // 긴 설명은 접어 두고 "지도 설명"을 누르면 펼쳐져요
+      var more = document.createElement("details"); more.className = "zmore";
+      var sm = document.createElement("summary"); sm.textContent = "지도 설명"; more.appendChild(sm);
+      var mp = document.createElement("p"); mp.textContent = (anySoft ? "점선은 아직 추진 초기 단계(후보지 신청·연번부여 등)예요. " : "") + (anyLoose ? "'경계 미정'은 아직 경계가 정해지지 않은 후보지 전 단계 구역이라 이름만 대략적인 자리에 적었어요. " : "") + "구역을 누르면 이름과 단계가 나와요. 지도를 더 키우면 다른 동 중개업소도 연한 점으로 보여요. " + srcNote;
+      more.appendChild(mp); leg.appendChild(more);
       leg.hidden = false;
     }
     var real = guCode ? fetch("./data/zones/" + guCode + ".json").then(function (r) { if (!r.ok) throw r; return r.json(); }).catch(function () { return null; }) : Promise.resolve(null);
@@ -329,7 +333,7 @@
     if (!wired) { wired = true; wireRegion(kakao); drawZones(kakao); }
     drawNb(kakao);
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
-    $("#kmapNote").textContent = "자홍색 점을 누르면 그 중개업소로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : "")) + (Object.keys(nbDots).length ? " · 연한 자홍색 점은 다른 동" : "");
+    $("#kmapNote").textContent = "점을 누르면 그 곳으로 가요" + (geoDone && miss ? " · 위치 못 찾은 곳 " + miss : (!geoDone ? " · 위치 찾는 중" : ""));
     viewNote();
   }
 
@@ -403,7 +407,7 @@
       })).then(function () { drawNb(kakao); geocodeNb(kakao); });
     }, function () {});
   }
-  function viewNote() { if (map && map.getLevel() > MAXLV && $("#kmapNote")) $("#kmapNote").textContent = "자홍색 점을 누르면 그 중개업소로 가요 · 지도를 더 키우면 다른 동 중개업소도 연한 자홍색 점으로 보여요"; }
+  function viewNote() { if (map && map.getLevel() > MAXLV && $("#kmapNote")) $("#kmapNote").textContent = "더 키우면 다른 동 곳도 보여요"; }
   function geocodeNb(kakao) { // 위치를 아직 모르는 곳을 차례로 찾아요. 지금 화면에 가까운 곳부터.
     if (nbBusy) return Promise.resolve();
     var g = new kakao.maps.services.Geocoder(), OK = kakao.maps.services.Status.OK, ZERO = kakao.maps.services.Status.ZERO_RESULT;

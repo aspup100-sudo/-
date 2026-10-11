@@ -322,3 +322,11 @@ html.map-fs .totop{display:none}
 .dot[data-star="1"]::before{content:"★";position:absolute;left:0;top:0;right:0;width:auto;height:auto;border:0;transform:none;font:24px/22px system-ui,sans-serif;text-align:center;color:#FFC400;-webkit-text-stroke:1.5px #6B4E00;paint-order:stroke fill}
 .dleg .dot[data-star="1"]{width:18px;height:18px}
 .dleg .dot[data-star="1"]::before{font-size:19px;line-height:18px}
+/* 지도 머리·범례 정리: 제목이 두 줄로 깨지지 않게, 긴 설명은 접어 두기 */
+.map-head{gap:10px;align-items:center}
+.map-head h2{white-space:nowrap;flex:none}
+.map-head span{text-align:right;line-height:1.35}
+.zleg .zl{white-space:nowrap}
+.zmore{flex-basis:100%;border:0!important;box-shadow:none!important;background:transparent!important;padding:0;margin:0}
+.zmore summary{cursor:pointer;color:var(--accent);font-size:12px;width:max-content}
+.zmore p{margin:4px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
