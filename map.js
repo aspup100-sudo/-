@@ -238,6 +238,14 @@
       btn.hidden = drawing; btn.textContent = active ? "영역 해제" : "영역으로 고르기";
       undo.hidden = ok.hidden = cancel.hidden = !drawing; ok.disabled = pts.length < 2; undo.disabled = !pts.length;
       box.classList.toggle("drawing", drawing);
+      // 그리는 동안에는 지도를 화면 가득 키우고, 끝나면 원래 자리로 돌려요. 보던 곳은 그대로 둬요.
+      var wrap = $("#kmapBox");
+      if (wrap.classList.contains("fs") !== drawing) {
+        var c = map.getCenter();
+        wrap.classList.toggle("fs", drawing); document.documentElement.classList.toggle("map-fs", drawing);
+        map.relayout(); map.setCenter(c);
+        if (!drawing) wrap.scrollIntoView({ block: "nearest" });
+      }
       // 그리는 동안에는 점(과 카카오가 씌운 겉상자)이 클릭을 가로채지 않게 해서, 점 위를 눌러도 꼭짓점이 찍히게 해요.
       Object.keys(dots).forEach(function (id) { var w = dots[id].el.parentNode; if (w && w.style) w.style.pointerEvents = drawing ? "none" : ""; });
       if (drawing && pendingPick && pts.length >= 2) msg.textContent = "완료를 누르면 이 안의 중개업소가 모두 동선에 담겨요.";

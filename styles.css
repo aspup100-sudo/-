@@ -295,3 +295,10 @@ a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-w
 .area.recent .area-go{margin-left:auto}
 #recentBlk h2{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .recent-clear{font-size:13px;padding:0}
+/* 영역을 그리는 동안 지도를 화면 가득 */
+#kmapBox.fs{position:fixed;inset:0;z-index:50;margin:0;border:0;border-radius:0;box-shadow:none;display:flex;flex-direction:column;padding:calc(8px + env(safe-area-inset-top,0px)) 8px calc(8px + env(safe-area-inset-bottom,0px))}
+#kmapBox.fs .kmap{flex:1 1 auto;height:auto;min-height:0}
+#kmapBox.fs .map-head,#kmapBox.fs #quietBtn,#kmapBox.fs .zleg{display:none}
+#kmapBox.fs .rg-bar{flex:none;padding-bottom:4px}
+html.map-fs,html.map-fs body{overflow:hidden}
+html.map-fs .totop{display:none}
