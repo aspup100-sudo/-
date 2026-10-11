@@ -320,6 +320,7 @@
       if (vis !== d.on) { d.ov.setMap(vis ? map : null); d.on = vis; }
       d.el.dataset.status = A.status(id);
       d.el.dataset.pick = picked[id] ? "1" : "";
+      starOn(d, id);
       if (vis) { bounds.extend(d.ov.getPosition()); sig.push(id); shown++; }
     });
     var s = sig.join(",");
@@ -453,8 +454,11 @@
       }
       d.el.dataset.status = A.status(x.id);
       d.el.dataset.pick = picked[x.id] ? "1" : "";
+      starOn(d, x.id, -1);
     });
   }
+  // 다시 갈 곳은 노란 별로, 다른 점보다 위에 그려요
+  function starOn(d, id, base) { var s = A.star ? A.star(id) : false; if ((d.el.dataset.star === "1") === s) return; d.el.dataset.star = s ? "1" : ""; d.ov.setZIndex(s ? 5 : (base || 0)); }
   function showTip(x, pos) {
     var t = nbTip.el; t.textContent = "";
     var b = document.createElement("b"); b.textContent = x.name; t.appendChild(b);

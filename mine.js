@@ -49,13 +49,14 @@
     if (f === "memo") return !!(x.n.memo || "").trim();
     if (f === "done") return x.n.status === "visit" || x.n.status === "call";
     if (f === "pick") return !!x.n.pick;
+    if (f === "star") return !!x.n.star;
     if (f === "review") return !!x.r;
     return true;
   }
 
   function render() {
     var notes = read("changsin-notes"), revs = read("changsin-my-reviews"), ids = {};
-    Object.keys(notes).forEach(function (id) { var n = notes[id]; if (n && ((n.memo || "").trim() || n.status || n.pick || (n.bunji || "").trim())) ids[id] = 1; });
+    Object.keys(notes).forEach(function (id) { var n = notes[id]; if (n && ((n.memo || "").trim() || n.status || n.pick || n.star || (n.bunji || "").trim())) ids[id] = 1; });
     Object.keys(revs).forEach(function (id) { ids[id] = 1; });
     var list = $("#mineList"), sum = $("#mineSum");
     resolve(Object.keys(ids)).then(function (found) {
@@ -67,10 +68,10 @@
         var r = revs[id] || null;
         rows.push({ id: id, f: f, n: n, r: r, t: [n.at, r && r.at].filter(Boolean).sort().pop() || "" });
       });
-      var c = { memo: 0, done: 0, pick: 0, review: 0 };
+      var c = { star: 0, memo: 0, done: 0, pick: 0, review: 0 };
       rows.forEach(function (x) { Object.keys(c).forEach(function (k) { if (has(x, k)) c[k]++; }); });
       sum.textContent = "";
-      [["메모", c.memo], ["방문·통화", c.done], ["동선", c.pick], ["리뷰", c.review]].forEach(function (p, i) {
+      [["다시 갈 곳", c.star], ["메모", c.memo], ["방문·통화", c.done], ["동선", c.pick], ["리뷰", c.review]].forEach(function (p, i) {
         if (i) sum.appendChild(document.createTextNode(" · "));
         sum.appendChild(document.createTextNode(p[0] + " ")); sum.appendChild(el("b", null, String(p[1])));
       });
@@ -101,6 +102,7 @@
   function item(x) {
     var c = el("article", "bk mine-it"); c.dataset.status = x.n.status || "";
     var top = el("div", "bk-top"); top.appendChild(el("h3", null, x.f.name));
+    if (x.n.star) top.appendChild(el("span", "star-tg", "★ 다시 갈 곳")).setAttribute("data-on", "1");
     if (x.n.pick) top.appendChild(el("span", "badge", "동선에 담음"));
     c.appendChild(top);
     if (x.f.addr) c.appendChild(el("p", "who", x.f.addr));

@@ -111,10 +111,11 @@
   <section class="view" id="mineView" hidden>
     <div class="blk">
       <h2>여러 동에 남긴 내 기록</h2>
-      <p class="hint">중개업소 카드에 쓴 메모, 방문·통화, 동선, 내 리뷰를 동별로 모았어요. 최근에 기록한 곳이 위에 와요. "카드로 가기"를 누르면 그 동의 카드로 가요.</p>
+      <p class="hint">중개업소 카드에 쓴 메모, 방문·통화, 다시 갈 곳, 동선, 내 리뷰를 동별로 모았어요. 최근에 기록한 곳이 위에 와요. "카드로 가기"를 누르면 그 동의 카드로 가요.</p>
       <p class="progress mine-sum" id="mineSum"></p>
       <div class="chips" id="mineFilters" role="group" aria-label="기록 골라 보기">
         <button class="chip" type="button" data-f="all" aria-pressed="true">전체</button>
+        <button class="chip" type="button" data-f="star" aria-pressed="false">★ 다시 갈 곳</button>
         <button class="chip" type="button" data-f="memo" aria-pressed="false">메모 있음</button>
         <button class="chip" type="button" data-f="done" aria-pressed="false">방문·통화</button>
         <button class="chip" type="button" data-f="pick" aria-pressed="false">동선 담은 곳</button>
@@ -130,7 +131,7 @@
       <div class="map-head"><h2>지도</h2><span id="kmapNote">점을 누르면 그 중개업소로 가요</span></div>
       <button class="lkbtn" type="button" id="quietBtn" aria-pressed="true">지도 글씨: 역·구역만</button>
       <div class="kmap" id="kmap"></div>
-      <p class="zleg dleg"><span class="zl"><b class="dot"></b>중개업소</span><span class="zl"><b class="dot" data-status="visit"></b>방문함</span><span class="zl"><b class="dot" data-status="call"></b>통화함</span><span class="zl"><b class="dot nb"></b>다른 동</span></p>
+      <p class="zleg dleg"><span class="zl"><b class="dot"></b>중개업소</span><span class="zl"><b class="dot" data-status="visit"></b>방문함</span><span class="zl"><b class="dot" data-status="call"></b>통화함</span><span class="zl"><b class="dot" data-star="1"></b>다시 갈 곳</span><span class="zl"><b class="dot nb"></b>다른 동</span></p>
       <p class="zleg" id="zoneLegend" hidden></p>
       <div class="rg-bar" id="regionBar">
         <button class="mini" id="regionBtn" type="button">영역으로 고르기</button>
@@ -187,6 +188,7 @@
       <button class="chip" data-f="all" aria-pressed="true">전체</button>
       <button class="chip" data-f="first" aria-pressed="false">먼저 갈 곳</button>
       <button class="chip" data-f="todo" aria-pressed="false">아직 안 감</button>
+      <button class="chip" data-f="star" aria-pressed="false">★ 다시 갈 곳</button>
       <button class="chip" data-f="pick" aria-pressed="false">동선 담은 곳</button>
       <button class="chip" data-f="memo" aria-pressed="false">메모 있음</button>
       <button class="chip" data-f="review" aria-pressed="false">리뷰 있음</button>

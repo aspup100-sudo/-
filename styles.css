@@ -313,3 +313,12 @@ a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-w
 #kmapBox.fs .rg-bar{flex:none;padding-bottom:4px}
 html.map-fs,html.map-fs body{overflow:hidden}
 html.map-fs .totop{display:none}
+/* 다시 갈 곳: 카드 제목 옆 별 버튼, 지도에서는 노란 별 */
+.star-tg{font:inherit;font-size:13px;font-weight:600;padding:2px 8px;border:1.5px dashed var(--line);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer}
+.star-tg[aria-pressed="true"],.star-tg[data-on]{border:1.5px solid #B88A00;background:#FFF3B8;color:#6B4E00}
+.bk[data-status="visit"] .bk-top,.bk[data-status="call"] .bk-top{padding-right:56px}
+.bk[data-star="1"]{box-shadow:3px 3px 0 #F5C400}
+.dot[data-star="1"],.dot.nb[data-star="1"]{width:22px;height:22px;background:transparent;border:0;box-shadow:none;opacity:1}
+.dot[data-star="1"]::before{content:"★";position:absolute;left:0;top:0;right:0;width:auto;height:auto;border:0;transform:none;font:24px/22px system-ui,sans-serif;text-align:center;color:#FFC400;-webkit-text-stroke:1.5px #6B4E00;paint-order:stroke fill}
+.dleg .dot[data-star="1"]{width:18px;height:18px}
+.dleg .dot[data-star="1"]::before{font-size:19px;line-height:18px}

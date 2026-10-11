@@ -58,7 +58,11 @@
   function card(b) {
     var id = b[0];
     var c = el("article", "bk"); c.dataset.id = id; c.dataset.street = b[5]; c.id = "card-" + id;
-    var top = el("div", "bk-top"); top.appendChild(el("h3", null, b[1])); if (b[10]) top.appendChild(el("span", "badge nbb", b[10])); if (b[6]) top.appendChild(el("span", "badge", "먼저 갈 곳")); c.appendChild(top);
+    var top = el("div", "bk-top"); top.appendChild(el("h3", null, b[1])); if (b[10]) top.appendChild(el("span", "badge nbb", b[10])); if (b[6]) top.appendChild(el("span", "badge", "먼저 갈 곳"));
+    // 다시 갈 곳: 가 보고 마음에 든 곳을 따로 별표해 둬요 (지도에서는 노란 별, 내 임장에서도 모아 봐요)
+    var sb = el("button", "star-tg", "☆ 다시 갈 곳"); sb.type = "button"; sb.setAttribute("aria-pressed", "false");
+    sb.addEventListener("click", function () { var r = rec(id); r.star = r.star ? 0 : 1; paint(id); applyFilter(); persist(id); changed(id); });
+    top.appendChild(sb); c.appendChild(top);
     var stt = /^(new|gone):(\d{4})-(\d{2})-(\d{2})$/.exec(b[9] || "");
     if (stt) { // 매일 등록부를 다시 확인해서 붙이는 표시
       var md = (+stt[3]) + "/" + (+stt[4]);
@@ -253,6 +257,8 @@
     var c = cards[id]; if (!c) return; var r = store[id] || {};
     c.dataset.status = r.status || "";
     c.querySelectorAll(".tg[data-s]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.s === r.status)); });
+    c.dataset.star = r.star ? "1" : "";
+    var sb = c.querySelector(".star-tg"); if (sb) { sb.setAttribute("aria-pressed", String(!!r.star)); sb.textContent = r.star ? "★ 다시 갈 곳" : "☆ 다시 갈 곳"; }
     var pk = c.querySelector(".tg.pick"); if (pk) { pk.setAttribute("aria-pressed", String(!!r.pick)); pk.textContent = r.pick ? "동선에 담음" : "동선 담기"; }
     var ta = $("#memo-" + id); if (ta && document.activeElement !== ta && ta.value !== (r.memo || "")) ta.value = r.memo || "";
     var bj = $("#bunji-" + id); if (bj && document.activeElement !== bj && bj.value !== (r.bunji || "")) bj.value = r.bunji || "";
@@ -278,6 +284,7 @@
     if (filter === "first" && !b[6]) return false;
     if (filter === "todo" && r.status) return false;
     if (filter === "pick" && !r.pick) return false;
+    if (filter === "star" && !r.star) return false;
     if (filter === "memo" && !(r.memo || "").trim()) return false;
     if (filter === "review" && !(RV && RV.count(id))) return false;
     if (filter === "fake" && !(RV && RV.fakes(id))) return false;
@@ -507,6 +514,7 @@
     setRegion: function (fn) { regionFn = fn || null; applyFilter(); },
     onRegionOff: function (f) { regionOff.push(f); },
     status: function (id) { return (store[id] || {}).status || ""; },
+    star: function (id) { return !!(store[id] || {}).star; },
     tab: function () { return tab; },
     onChange: function (f) { listeners.push(f); },
     goCard: function (id) {
