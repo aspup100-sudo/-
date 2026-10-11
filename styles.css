@@ -159,6 +159,8 @@ a.mini{text-decoration:none;display:inline-block}
 .kmap{height:min(340px,48vh);border-radius:8px;overflow:hidden;margin-top:6px;background:var(--bg)}
 #rmapBox{padding:4px}
 #rmapBox{position:relative}
+/* 지도 칸 안의 버튼·카카오 지도 조각이 위에 붙어 있는 제목·탭 위로 올라오지 않게 */
+.map{isolation:isolate}
 #rmapBox .kmap{margin-top:0;height:min(400px,58vh)}
 .dot{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;background:#C2187A;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.3);display:block}
 .dot[data-status="call"]{background:#2460A7}
