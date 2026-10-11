@@ -42,6 +42,12 @@
     <div class="auth-card">
       <h2 id="authTitle">로그인</h2>
       <p class="hint" id="authWait">확인하는 중이에요…</p>
+      <div class="kk-box" id="kakaoBox" hidden>
+        <button class="kk-btn" type="button" id="kakaoBtn">카카오로 시작하기</button>
+        <p class="hint">처음이면 카카오 계정으로 바로 가입돼요. 닉네임만 받아요.</p>
+        <p class="auth-err" id="kkErr" role="alert"></p>
+        <p class="kk-or">또는 이메일로</p>
+      </div>
       <form id="loginForm" hidden novalidate>
         <p class="hint">임장 수첩은 회원만 볼 수 있어요.</p>
         <label class="fld">이메일<input type="email" id="liId" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="100" inputmode="email"></label>
@@ -229,7 +235,7 @@
 <dialog id="acctDlg">
   <div class="acct">
     <h2>내 계정</h2>
-    <p class="hint">이메일 <b id="acId"></b></p>
+    <p class="hint" id="acIdRow">이메일 <b id="acId"></b></p>
     <label class="fld">닉네임<input type="text" id="acNick" maxlength="12" autocomplete="nickname"></label>
     <p class="hint" id="acMsg" role="status"></p>
     <div class="acts"><button class="tg visit" type="button" id="acSave" aria-pressed="true">닉네임 저장</button><button class="tg" type="button" id="acOut">로그아웃</button><button class="tg" type="button" id="acClose">닫기</button></div>

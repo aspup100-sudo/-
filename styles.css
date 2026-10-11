@@ -229,6 +229,10 @@ body.locked .wrap > section:not(#authView), body.locked #tabs, body.locked .bar,
 input[type=password]{font:inherit;font-size:16px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px 10px}
 .auth-err{margin:0;font-size:13px;color:var(--first);min-height:1.2em}
 .auth-card .rv-save{padding:11px 14px;font-size:15px}
+.kk-box{display:flex;flex-direction:column;gap:6px}
+.kk-btn{font:inherit;font-size:15px;font-weight:600;padding:11px 14px;border:0;border-radius:6px;background:#FEE500;color:#191919;cursor:pointer}
+.kk-btn:disabled{opacity:.6;cursor:default}
+.kk-or{margin:4px 0 0;font-size:13px;color:var(--muted);text-align:center}
 .lkbtn{font:inherit;font-size:14px;font-weight:500;background:none;border:0;padding:6px 0;color:var(--accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer;align-self:flex-start}
 .acct{display:flex;flex-direction:column;gap:10px}
 button:disabled,input:disabled{opacity:.6}

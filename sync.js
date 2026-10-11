@@ -1,6 +1,7 @@
 // 회원(로그인)과 모두가 보는 리뷰 저장 — Firebase Authentication + Firestore.
 // 체크와 메모는 여기로 오지 않고 각자 기기에만 남아요. config.js에 firebase 설정이 없으면 꺼진 상태로 둬요.
 // 이메일과 비밀번호로 가입·로그인하고, 비밀번호를 잊으면 그 이메일로 재설정 링크를 보내요.
+// 카카오 로그인은 중계 서버(tools/kakao-login)가 만든 커스텀 토큰으로 해요.
 const cfg = window.CS_CONFIG || {};
 const done = window.__csSyncResolve || (() => {});
 (async () => {
@@ -37,6 +38,11 @@ const done = window.__csSyncResolve || (() => {});
           cur = c.user; known = true; emit(); return shape(cur);
         },
         async signIn(email, pw) { const c = await au.signInWithEmailAndPassword(auth, mail(email), pw); return shape(c.user); },
+        async signInKakao(token, nick) { // 중계 서버가 만든 커스텀 토큰으로 로그인. 처음이면 그때 계정이 생겨요.
+          const c = await au.signInWithCustomToken(auth, token);
+          if (!c.user.displayName && nick) { await au.updateProfile(c.user, { displayName: nick }); }
+          cur = c.user; known = true; emit(); return shape(cur);
+        },
         resetPassword(email) { return au.sendPasswordResetEmail(auth, mail(email)); },
         signOut() { return au.signOut(auth); },
         async setNick(nick) { if (!cur) throw new Error("signed out"); await au.updateProfile(cur, { displayName: nick }); emit(); }

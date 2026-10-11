@@ -6,12 +6,27 @@
   var configured = !!(cfg.firebase && cfg.firebase.projectId), need = configured && !!cfg.requireLogin;
   var view = $("#authView"), lf = $("#loginForm"), sf = $("#signupForm"), rf = $("#resetForm"), wait = $("#authWait"), acct = $("#acctDlg"), btn = $("#nameBtn");
   var sync = null, user = null;
+  // 카카오 로그인: config.js의 kakaoLogin에 REST 키와 중계 서버 주소가 있어야 버튼이 보여요.
+  var kk = cfg.kakaoLogin || {}, kkOn = configured && !!(kk.restKey && kk.worker), kkBox = $("#kakaoBox"), kkErr = $("#kkErr");
+  var kkBase = location.origin + location.pathname, kkBack = null;
+  function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
+  var kkCode = null; // 카카오에서 돌아온 경우 그 인가 코드
+  (function () {
+    var q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
+    if (!q.get("code") && !q.get("error")) return;
+    var want = ss("cs-kk-state"); kkBack = ss("cs-kk-back") || ""; ss("cs-kk-state", null); ss("cs-kk-back", null);
+    try { history.replaceState(null, "", kkBase + kkBack + location.hash); } catch (e) {}
+    if (!kkOn) return;
+    if (q.get("error")) { kkErr.textContent = q.get("error") === "access_denied" ? "카카오 로그인을 취소했어요." : "카카오 로그인이 잘 안 됐어요. 다시 해주세요."; return; }
+    if (!want || q.get("state") !== want) { kkErr.textContent = "카카오 로그인이 오래돼서 끊겼어요. 다시 해주세요."; return; }
+    kkCode = q.get("code");
+  })();
   function seen() { try { return JSON.parse(localStorage.getItem("cs-auth-seen") || "null"); } catch (e) { return null; } }
   function setSeen(u) { try { if (u) localStorage.setItem("cs-auth-seen", JSON.stringify({ nick: u.nick })); else localStorage.removeItem("cs-auth-seen"); } catch (e) {} }
   var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   function lock(on) { body.classList.toggle("locked", !!on); view.hidden = !on; if (on) window.scrollTo(0, 0); }
   function mode(m) { // wait | login | signup | reset
-    wait.hidden = m !== "wait"; lf.hidden = m !== "login"; sf.hidden = m !== "signup"; rf.hidden = m !== "reset";
+    wait.hidden = m !== "wait"; kkBox.hidden = !kkOn || (m !== "login" && m !== "signup"); lf.hidden = m !== "login"; sf.hidden = m !== "signup"; rf.hidden = m !== "reset";
     $("#authTitle").textContent = m === "signup" ? "회원가입" : m === "reset" ? "비밀번호 찾기" : "로그인";
     var f = m === "login" ? $("#liId") : m === "signup" ? $("#suId") : m === "reset" ? $("#rsId") : null; if (f) setTimeout(function () { try { f.focus(); } catch (e) {} }, 50);
   }
@@ -32,7 +47,8 @@
     requireLogin: function () { if (!sync) return; mode("login"); lock(true); },
     openAccount: function () {
       if (!user) { window.CS_AUTH.requireLogin(); return; }
-      $("#acId").textContent = user.email; $("#acNick").value = user.nick || ""; $("#acMsg").textContent = "";
+      if (user.email) { $("#acIdRow").innerHTML = '이메일 <b id="acId"></b>'; $("#acId").textContent = user.email; }
+      else $("#acIdRow").textContent = "카카오 계정으로 로그인했어요."; $("#acNick").value = user.nick || ""; $("#acMsg").textContent = "";
       if (acct.showModal) acct.showModal(); else acct.setAttribute("open", "");
     }
   };
@@ -51,6 +67,21 @@
       ok.textContent = "가입된 이메일이라면 메일을 보냈어요. 메일의 링크를 눌러 새 비밀번호를 정한 뒤 여기서 다시 로그인하세요. 몇 분이 지나도 안 오면 스팸함을 확인해 주세요.";
     }, function (x) { say(err, x); }).then(function () { busy(rf, false); });
   });
+  $("#kakaoBtn").addEventListener("click", function () {
+    var st = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    ss("cs-kk-state", st); ss("cs-kk-back", location.search);
+    location.href = "https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=" + encodeURIComponent(kk.restKey) +
+      "&redirect_uri=" + encodeURIComponent(kkBase) + "&state=" + encodeURIComponent(st);
+  });
+  function kakaoFinish() {
+    var b = $("#kakaoBtn"); b.disabled = true; kkErr.textContent = "카카오 계정을 확인하는 중이에요…";
+    fetch(kk.worker, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: kkCode, redirectUri: kkBase }) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.token) throw j; return j; }); })
+      .then(function (j) { return sync.auth.signInKakao(j.token, j.nick); })
+      .then(function () { kkErr.textContent = ""; if (kkBack) location.reload(); }, function (x) { // 보던 구역이 있었으면 그 주소로 다시 열어요
+        kkErr.textContent = x && x.code === "auth/network-request-failed" ? ERR[x.code] : "카카오 로그인이 잘 안 됐어요. 잠시 뒤에 다시 해주세요.";
+      }).then(function () { b.disabled = false; kkCode = null; });
+  }
   var back = $("#authBack"); back.addEventListener("click", function () { lock(false); });
 
   lf.addEventListener("submit", function (e) {
@@ -94,9 +125,10 @@
       return;
     }
     sync = s; window.CS_AUTH.active = true;
+    if (kkCode) kakaoFinish();
     s.auth.onChange(function (u) {
       user = u; label();
-      if (u) { setSeen(u); A.setName(u.nick || u.email.split("@")[0]); lock(false); }
+      if (u) { setSeen(u); A.setName(u.nick || (u.email || "").split("@")[0]); lock(false); }
       else { setSeen(null); A.setName(""); if (need) { mode("login"); lock(true); } }
     });
   });
