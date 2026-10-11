@@ -330,3 +330,14 @@ html.map-fs .totop{display:none}
 .zmore{flex-basis:100%;border:0!important;box-shadow:none!important;background:transparent!important;padding:0;margin:0}
 .zmore summary{cursor:pointer;color:var(--accent);font-size:12px;width:max-content}
 .zmore p{margin:4px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
+/* 실시간 내 위치: 파란 점 + 지도 위 버튼 줄 */
+.me-dot{display:block;width:16px;height:16px;border-radius:50%;background:#1A73E8;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25),0 0 0 6px rgba(26,115,232,.25);animation:mepulse 2s ease-out infinite}
+@keyframes mepulse{0%{box-shadow:0 0 0 1px rgba(0,0,0,.25),0 0 0 0 rgba(26,115,232,.45)}100%{box-shadow:0 0 0 1px rgba(0,0,0,.25),0 0 0 14px rgba(26,115,232,0)}}
+@media (prefers-reduced-motion:reduce){.me-dot{animation:none}}
+.me-bar{display:flex;align-items:center;gap:8px;margin:4px 0 0}
+.me-btn{font-size:14px}
+.me-btn[data-state="err"]{color:var(--first)}
+.me-off{font-size:13px}
+.me-btn[data-state="off"]+.me-off{display:none}
+.rt-how{color:var(--muted)}
+#kmapBox.fs .me-bar{position:absolute;z-index:5;left:10px;top:10px;background:var(--surface);padding:4px 8px;border-radius:4px}

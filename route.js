@@ -43,6 +43,22 @@
     return best ? best.seq.map(function (i) { return pts[i]; }) : [];
   }
   function mins(m) { return Math.max(1, Math.round(m * DETOUR / WALK)); }
+  // 실제 걷는 길: 오픈스트리트맵 보행 길찾기(routing.openstreetmap.de, 무료)에 순서대로 넣어 구간별 거리와 길 모양을 받아요.
+  // 곳이 너무 많으면(60곳 넘게) 보내지 않고 직선 어림만 써요. 같은 순서는 다시 묻지 않게 기억해 둬요.
+  var WAYS = {}, WAY_MAX = 60;
+  function walkRoute(lls) {
+    if (lls.length < 2 || lls.length > WAY_MAX) return Promise.resolve(null);
+    var key = lls.map(function (p) { return p[1].toFixed(5) + "," + p[0].toFixed(5); }).join(";");
+    if (WAYS[key]) return WAYS[key];
+    return (WAYS[key] = fetch("https://routing.openstreetmap.de/routed-foot/route/v1/driving/" + key + "?overview=full&geometries=geojson&steps=false")
+      .then(function (r) { if (!r.ok) throw r; return r.json(); })
+      .then(function (j) {
+        var rt = j && j.code === "Ok" && j.routes && j.routes[0]; if (!rt || !rt.legs || rt.legs.length !== lls.length - 1) throw j;
+        return { legs: rt.legs.map(function (l) { return l.distance; }), line: rt.geometry.coordinates.map(function (c) { return [c[1], c[0]]; }) };
+      }).catch(function () { delete WAYS[key]; return null; }));
+  }
+  function wmins(m) { return Math.max(1, Math.round(m / WALK)); } // 실제 길 거리(m) → 분
+  function wmeters(m) { return m >= 1000 ? (m / 1000).toFixed(1) + "km" : Math.round(m / 10) * 10 + "m"; }
   function hm(n) { var h = Math.floor(n / 60), m = n % 60; return (h ? h + "시간" : "") + (h && m ? " " : "") + (m || !h ? m + "분" : ""); }
   function meters(m) { m = m * DETOUR; return m >= 1000 ? (m / 1000).toFixed(1) + "km" : Math.round(m / 10) * 10 + "m"; }
   window.CS_ROUTE = { order: order, dist: dist, mins: mins };
@@ -55,6 +71,7 @@
         function () { hereErr = "위치 권한이 없어서 가장 짧은 순서로 짰어요."; res(null); }, { timeout: 8000, maximumAge: 60000 });
     });
   }
+  if (M && M.onHere) M.onHere(function (ll) { var first = !here; here = ll; if (first && selStart.value === "me") render(); });
   function startPoint() {
     var v = selStart.value;
     if (v === "me") return (here ? Promise.resolve(here) : locate()).then(function (ll) { return ll ? { ll: ll, name: "내 위치" } : null; });
@@ -62,10 +79,10 @@
     return Promise.resolve(null);
   }
 
-  function item(n, p, leg, from) {
+  function item(n, p, leg, from, real) {
     var li = el("li", "rt-item"); li.appendChild(el("span", "rt-n", String(n)));
     var m = el("div", "rt-main"); m.appendChild(el("b", null, p.name)); m.appendChild(el("span", "v", p.addr));
-    if (leg != null) m.appendChild(el("span", "rt-leg", (from || "앞 장소") + "에서 걸어서 약 " + mins(leg) + "분 · " + meters(leg)));
+    if (leg != null) m.appendChild(el("span", "rt-leg", (from || "앞 장소") + "에서 걸어서 약 " + (real ? wmins(leg) + "분 · " + wmeters(leg) : mins(leg) + "분 · " + meters(leg))));
     var row = el("div", "row");
     if (p.ll) { var a = el("a", null, "카카오맵 길찾기"); a.href = "https://map.kakao.com/link/to/" + encodeURIComponent(p.name) + "," + p.ll[0] + "," + p.ll[1]; a.target = "_blank"; a.rel = "noopener"; row.appendChild(a); }
     var go = el("button", "mini", "카드 보기"); go.type = "button"; go.addEventListener("click", function () { A.goCard(p.id); }); row.appendChild(go);
@@ -91,24 +108,36 @@
       if (my !== token) return;
       var seq = order(pts, st ? st.ll : null), dwell = +selDwell.value || 15, walk = 0, legs = [];
       seq.forEach(function (p, i) { var prev = i ? seq[i - 1].ll : (st ? st.ll : null); var d = prev ? dist(prev, p.ll) : null; legs.push(d); if (d != null) walk += d; });
-      var wm = legs.reduce(function (a, d) { return a + (d != null ? mins(d) : 0); }, 0), stay = seq.length * dwell;
-      sum.textContent = "";
-      sum.appendChild(el("b", null, seq.length + "곳 · 합쳐서 약 " + hm(wm + stay)));
-      sum.appendChild(document.createTextNode(" (걷기 약 " + hm(wm) + " · " + meters(walk) + ", 머무는 시간 " + hm(stay) + ")"));
-      if (selStart.value === "me" && !st && hereErr) sum.appendChild(el("span", "rt-warn", " " + hereErr));
-      if (selStart.value.indexOf("st:") === 0 && !st) sum.appendChild(el("span", "rt-warn", " 역 위치를 못 찾아서 가장 짧은 순서로 짰어요."));
-      if (lost.length) sum.appendChild(el("span", "rt-warn", " 위치를 못 찾은 " + lost.length + "곳은 맨 아래에 따로 뒀어요."));
-      list.textContent = "";
-      seq.forEach(function (p, i) { list.appendChild(item(i + 1, p, legs[i], i ? null : (st ? st.name : null))); });
-      lost.forEach(function (p) { var li = item("?", p, null); li.classList.add("lost"); list.appendChild(li); });
-      drawMap(seq, st);
+      var stay = seq.length * dwell;
+      // way: 실제 걷는 길을 받았으면 {legs, line}, 아직이거나 못 받았으면 null (직선 어림)
+      function show(way, wayNote) {
+        var lg = legs, wm, total;
+        if (way) { lg = legs.map(function (d) { return d == null ? null : 0; }); var k = 0; lg = lg.map(function (d) { return d == null ? null : way.legs[k++]; }); }
+        wm = lg.reduce(function (a, d) { return a + (d != null ? (way ? wmins(d) : mins(d)) : 0); }, 0);
+        total = lg.reduce(function (a, d) { return a + (d || 0); }, 0);
+        sum.textContent = "";
+        sum.appendChild(el("b", null, seq.length + "곳 · 합쳐서 약 " + hm(wm + stay)));
+        sum.appendChild(document.createTextNode(" (걷기 약 " + hm(wm) + " · " + (way ? wmeters(total) : meters(walk)) + ", 머무는 시간 " + hm(stay) + ")"));
+        sum.appendChild(el("span", "rt-how", way ? " 실제 걷는 길 기준이에요." : wayNote));
+        if (selStart.value === "me" && !st && hereErr) sum.appendChild(el("span", "rt-warn", " " + hereErr));
+        if (selStart.value.indexOf("st:") === 0 && !st) sum.appendChild(el("span", "rt-warn", " 역 위치를 못 찾아서 가장 짧은 순서로 짰어요."));
+        if (lost.length) sum.appendChild(el("span", "rt-warn", " 위치를 못 찾은 " + lost.length + "곳은 맨 아래에 따로 뒀어요."));
+        list.textContent = "";
+        seq.forEach(function (p, i) { list.appendChild(item(i + 1, p, lg[i], i ? null : (st ? st.name : null), !!way)); });
+        lost.forEach(function (p) { var li = item("?", p, null); li.classList.add("lost"); list.appendChild(li); });
+        drawMap(seq, st, way);
+      }
+      var lls = (st ? [st.ll] : []).concat(seq.map(function (p) { return p.ll; }));
+      var many = lls.length > WAY_MAX;
+      show(null, many ? " 곳이 " + WAY_MAX + "곳보다 많아서 직선거리로 어림했어요. 줄이면 실제 걷는 길로 계산해요." : " 실제 걷는 길을 찾는 중이에요…");
+      if (!many) walkRoute(lls).then(function (way) { if (my !== token) return; show(way, " 실제 길을 못 받아서 직선거리로 어림했어요."); });
     });
   }
-  function drawMap(seq, st) {
+  function drawMap(seq, st, way) {
     if (!M) return;
     M.sdk.then(function (kakao) {
       var box = $("#rmapBox"); box.hidden = false;
-      if (!rmap) rmap = new kakao.maps.Map($("#rmap"), { center: new kakao.maps.LatLng(seq[0].ll[0], seq[0].ll[1]), level: 4 });
+      if (!rmap) { rmap = new kakao.maps.Map($("#rmap"), { center: new kakao.maps.LatLng(seq[0].ll[0], seq[0].ll[1]), level: 4 }); if (M.live) M.live(rmap, $("#rmap")); }
       drawn.forEach(function (o) { o.setMap(null); }); drawn = [];
       var b = new kakao.maps.LatLngBounds(), line = [];
       if (st) { var sp = new kakao.maps.LatLng(st.ll[0], st.ll[1]); line.push(sp); b.extend(sp); var s = document.createElement("span"); s.className = "pin start"; s.textContent = "출발"; var so = new kakao.maps.CustomOverlay({ position: sp, content: s, yAnchor: 0.5 }); so.setMap(rmap); drawn.push(so); }
@@ -119,7 +148,8 @@
       });
       var rg = M.region && M.region(); // 중개업소 탭에서 고른 영역도 같이 그려요
       if (rg) { var pg = new kakao.maps.Polygon({ path: rg.poly.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.8, fillColor: "#F2A65A", fillOpacity: 0.1 }); pg.setMap(rmap); drawn.push(pg); }
-      var pl = new kakao.maps.Polyline({ path: line, strokeWeight: 4, strokeColor: "#0B6E5F", strokeOpacity: 0.85, strokeStyle: "solid" }); pl.setMap(rmap); drawn.push(pl);
+      if (way) line = way.line.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }); // 실제 걷는 길 모양
+      var pl = new kakao.maps.Polyline({ path: line, strokeWeight: 4, strokeColor: "#0B6E5F", strokeOpacity: 0.85, strokeStyle: way ? "solid" : "shortdash" }); pl.setMap(rmap); drawn.push(pl);
       rmap.relayout(); rmap.setBounds(b, 30, 30, 30, 30);
     }).catch(function () { $("#rmapBox").hidden = true; });
   }

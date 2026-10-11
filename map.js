@@ -18,8 +18,59 @@
     document.head.appendChild(s);
   });
 
+  // 내 위치를 실시간으로: 버튼을 누르면 위치를 계속 받아서, 붙여 둔 지도마다 파란 점(정확도 원 포함)을 옮겨요.
+  // 처음 위치를 찾으면 그 자리로 지도를 옮기고, 그 뒤에는 점만 움직여요. 버튼을 한 번 더 누르면 꺼져요.
+  var live = { watch: null, ll: null, acc: 0, maps: [], btns: [], subs: [] };
+  function liveBtn(text, state) { live.btns.forEach(function (b) { b.textContent = text; b.setAttribute("aria-pressed", String(state === "on")); b.dataset.state = state; }); }
+  function livePaint(center) {
+    live.maps.forEach(function (m) {
+      var kakao = window.kakao, pos = new kakao.maps.LatLng(live.ll[0], live.ll[1]);
+      if (!m.dot) {
+        var e = document.createElement("span"); e.className = "me-dot"; e.title = "내 위치";
+        m.dot = new kakao.maps.CustomOverlay({ position: pos, content: e, xAnchor: 0.5, yAnchor: 0.5, zIndex: 9 });
+        m.ring = new kakao.maps.Circle({ center: pos, radius: 10, strokeWeight: 1, strokeColor: "#1A73E8", strokeOpacity: 0.5, fillColor: "#1A73E8", fillOpacity: 0.12 });
+      }
+      m.dot.setPosition(pos); m.ring.setPosition(pos); m.ring.setRadius(Math.min(live.acc || 10, 300));
+      m.dot.setMap(m.map); m.ring.setMap(m.map);
+      if (center) m.map.panTo(pos);
+    });
+  }
+  function liveOff() {
+    if (live.watch != null) navigator.geolocation.clearWatch(live.watch);
+    live.watch = null; live.ll = null;
+    live.maps.forEach(function (m) { if (m.dot) { m.dot.setMap(null); m.ring.setMap(null); } });
+    liveBtn("📍 내 위치 보기", "off");
+  }
+  function liveToggle() {
+    if (live.watch != null) { if (live.ll) { livePaint(true); } return; }
+    if (!navigator.geolocation) { liveBtn("이 기기는 위치를 못 써요", "err"); return; }
+    var first = true; liveBtn("📍 내 위치 찾는 중…", "wait");
+    live.watch = navigator.geolocation.watchPosition(function (p) {
+      live.ll = [p.coords.latitude, p.coords.longitude]; live.acc = p.coords.accuracy || 0;
+      livePaint(first); first = false; liveBtn("📍 내 위치로 가기", "on");
+      live.subs.forEach(function (f) { try { f(live.ll); } catch (e) {} });
+    }, function (e) {
+      if (e && e.code === 1) { liveOff(); liveBtn("📍 위치 권한을 허용해 주세요", "err"); return; } // 권한 거절일 때만 멈춰요
+      if (!live.ll) liveBtn("📍 위치 신호를 기다리는 중…", "wait"); // 잠깐 신호가 약한 건 계속 기다려요
+    }, { enableHighAccuracy: true, maximumAge: 5000 });
+  }
+  // 지도와 버튼 묶기: box 안에 [내 위치 보기] [×] 버튼을 넣어요
+  function liveAttach(map, box) {
+    live.maps.push({ map: map });
+    var w = document.createElement("div"); w.className = "me-bar";
+    var b = document.createElement("button"); b.type = "button"; b.className = "lkbtn me-btn"; b.addEventListener("click", liveToggle);
+    var x = document.createElement("button"); x.type = "button"; x.className = "lkbtn me-off"; x.textContent = "끄기"; x.setAttribute("aria-label", "내 위치 끄기"); x.addEventListener("click", liveOff);
+    w.appendChild(b); w.appendChild(x); box.parentNode.insertBefore(w, box);
+    live.btns.push(b);
+    if (live.ll) livePaint(false);
+    liveBtn(live.watch != null ? (live.ll ? "📍 내 위치로 가기" : "📍 내 위치 찾는 중…") : "📍 내 위치 보기", live.watch != null ? (live.ll ? "on" : "wait") : "off");
+  }
+
   window.CS_MAP = {
     sdk: sdk,
+    live: liveAttach,
+    onHere: function (f) { live.subs.push(f); },
+    here: function () { return live.ll; },
     geo: function (id) { return cache.p[id] || null; },
     done: function () { return geoDone; },
     onGeo: function (f) { geoWaiters.push(f); },
@@ -295,6 +346,7 @@
     if (!map) {
       box.hidden = false; $("#svgMap").hidden = true; $("#streets").hidden = false;
       map = new kakao.maps.Map($("#kmap"), { center: new kakao.maps.LatLng(37.5665, 126.978), level: 5 });
+      liveAttach(map, $("#kmap"));
       try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {}
       wireQuiet(kakao);
       // 지도를 옮기거나 키우고 멈추면 화면에 걸친 다른 동 중개업소를 불러와요.
