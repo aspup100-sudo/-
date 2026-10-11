@@ -148,7 +148,19 @@
   if (M && M.onZones) M.onZones(zoneOptions);
   if (M) M.onGeo(zoneOptions);
 
-  selStart.addEventListener("change", function () { try { localStorage.setItem("cs-rt-start-" + area.id, selStart.value); } catch (e) {} render(); });
+  // "지금 내 위치"를 고르면 바로 위치를 물어보고, 어떻게 됐는지 아래에 적어 줘요
+  var hereNote = $("#rtHere");
+  function askHere() {
+    hereNote.hidden = false; hereNote.textContent = "내 위치를 확인하는 중이에요. 위치 사용을 묻는 창이 뜨면 '허용'을 눌러 주세요.";
+    here = null; locate().then(function (ll) {
+      hereNote.textContent = ll ? "내 위치를 찾았어요. 여기서부터 순서를 짜요."
+        : hereErr === "이 기기에서는 위치를 쓸 수 없어요." ? hereErr
+        : "위치를 못 가져왔어요. 휴대폰 위치(GPS)가 꺼져 있거나 이 사이트의 위치 권한이 막혀 있어요. 아이폰은 설정 › 개인정보 보호 및 보안 › 위치 서비스를 켜고 Safari 웹 사이트를 '앱을 사용하는 동안'으로, 안드로이드는 크롬 주소창 왼쪽 자물쇠 › 권한 › 위치를 허용으로 바꾼 뒤 다시 골라 주세요.";
+      render();
+    });
+  }
+  selStart.addEventListener("change", function () { try { localStorage.setItem("cs-rt-start-" + area.id, selStart.value); } catch (e) {} if (selStart.value === "me") askHere(); else { hereNote.hidden = true; render(); } });
+  if (selStart.value === "me") askHere();
   selDwell.addEventListener("change", function () { try { localStorage.setItem("cs-rt-dwell", selDwell.value); } catch (e) {} render(); });
   A.onChange(function (what) { if (what !== "") render(); });
   if (M) M.onGeo(render);

@@ -229,7 +229,7 @@
       clearShape();
       pts.forEach(function (p) { var v = document.createElement("span"); v.className = "vx"; var o = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(p[0], p[1]), content: v, xAnchor: 0.5, yAnchor: 0.5 }); o.setMap(map); marks.push(o); });
       if (pts.length >= 2) {
-        shape = new kakao.maps.Polygon({ path: pathOf(pts).map(function (p) { return new kakao.maps.LatLng(p[0], p[1]); }), strokeWeight: 3, strokeColor: "#B4541A", strokeOpacity: 0.95, fillColor: "#F2A65A", fillOpacity: 0.3 });
+        shape = new kakao.maps.Polygon({ path: pathOf(pts).map(function (p) { return new kakao.maps.LatLng(p[0], p[1]); }), strokeWeight: 3, strokeColor: "#B4541A", strokeOpacity: 0.95, fillColor: "#F2A65A", fillOpacity: 0.15 });
         shape.setMap(map);
         kakao.maps.event.addListener(shape, "click", function (e) { if (onMapClick) onMapClick(e); });
       }
@@ -450,7 +450,7 @@
     var t = nbTip.el; t.textContent = "";
     var b = document.createElement("b"); b.textContent = x.name; t.appendChild(b);
     var s1 = document.createElement("span"); s1.textContent = x.dong + " · " + x.addr; t.appendChild(s1);
-    if (x.tel) { var tel = document.createElement("a"); tel.href = "tel:" + x.tel.replace(/[^\d+]/g, ""); tel.textContent = x.tel; t.appendChild(tel); }
+    if (x.tel) String(x.tel).split(/[\s,\/;]+/).filter(function (p) { return p.replace(/\D/g, "").length >= 7; }).forEach(function (p) { var tel = document.createElement("a"); tel.href = "tel:" + p.replace(/[^\d+]/g, ""); tel.textContent = p; t.appendChild(tel); }); // 번호가 여러 개면 따로따로
     var on = A.picks().some(function (p) { return p[0] === x.id; });
     var pk = document.createElement("button"); pk.type = "button"; pk.className = "tg pick"; pk.setAttribute("aria-pressed", String(on)); pk.textContent = on ? "동선에 담음" : "동선 담기";
     pk.addEventListener("click", function (e) { e.stopPropagation(); A.setPick(x.id, !on); showTip(x, pos); });

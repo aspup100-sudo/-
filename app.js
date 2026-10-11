@@ -40,6 +40,7 @@
     var k = el("a", null, "카카오맵"); k.href = "https://map.kakao.com/link/search/" + encodeURIComponent(full); k.target = "_blank"; k.rel = "noopener";
     f.appendChild(a); f.appendChild(k); return f;
   }
+  function phones(s) { return String(s || "").split(/[\s,\/;]+/).map(function (x) { return x.trim(); }).filter(function (x) { return x.replace(/\D/g, "").length >= 7; }); }
   function copyBtn(text, target) {
     var b = el("button", "mini", "복사"); b.type = "button";
     b.addEventListener("click", function () {
@@ -65,9 +66,15 @@
     if (b[7]) c.appendChild(el("p", "tags", "올린 매물: " + b[7]));
     var ad = el("p", "row"); ad.appendChild(el("span", "v", b[2])); ad.appendChild(mapLinks(b[3], b[11])); c.appendChild(ad);
     var tl = el("p", "row");
-    if (b[4]) { var n = el("span", "num", b[4]); tl.appendChild(n); tl.appendChild(copyBtn(b[4], n)); var t = el("a", null, "전화 걸기"); t.href = "tel:" + b[4].replace(/-/g, ""); tl.appendChild(t); }
-    else tl.appendChild(el("span", "v", "등록부에 전화번호 없음"));
+    // 번호가 여러 개면("02-498-9200 02-464-2266") 줄을 나눠 번호마다 따로 걸 수 있게 해요
+    var nums = phones(b[4]);
+    if (!nums.length) tl.appendChild(el("span", "v", "등록부에 전화번호 없음"));
     c.appendChild(tl);
+    nums.forEach(function (p, i) {
+      var row = i ? c.appendChild(el("p", "row")) : tl;
+      var n = el("span", "num", p); row.appendChild(n); row.appendChild(copyBtn(p, n));
+      var t = el("a", null, "전화 걸기"); t.href = "tel:" + p.replace(/[^\d+]/g, ""); row.appendChild(t);
+    });
     var acts = el("div", "acts");
     [["call", "통화함"], ["visit", "방문함"]].forEach(function (s) {
       var bt = el("button", "tg " + s[0], s[1]); bt.type = "button"; bt.setAttribute("aria-pressed", "false"); bt.dataset.s = s[0];
