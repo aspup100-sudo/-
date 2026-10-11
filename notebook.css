@@ -69,3 +69,13 @@ textarea,input[type=text],input[type=number],input[type=email],input[type=passwo
 @media (hover:hover){.gm:hover{fill:color-mix(in srgb,var(--marker) 45%,var(--sheet))}}
 .gm-l.on{fill:var(--ink);stroke:var(--marker)}
 .totop{border-radius:4px;background:var(--pen);border-color:var(--pen);color:var(--paper);box-shadow:3px 3px 0 var(--rule)}
+/* 내 임장: 동별 묶음 + 메모 쪽지 */
+.mine-grp{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.mine-grp .lkbtn{font-size:13px;font-weight:500;white-space:nowrap}
+.mine-it{display:flex;flex-direction:column;gap:6px}
+.mine-it .bk-top{padding-right:56px}
+.mine-memo{margin:0;white-space:pre-wrap;word-break:break-word;line-height:26px;padding:0 6px;background:var(--sheet) repeating-linear-gradient(transparent 0 25px,var(--rule) 25px 26px);border-bottom:1.5px solid var(--rule)}
+.mine-rv{margin:0;font-size:14px}
+.mine-rv .rv-star{color:var(--stamp);letter-spacing:1px}
+.mine-go{align-self:flex-start;font-size:14px}
+.mine-sum{margin:0}

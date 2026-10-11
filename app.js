@@ -25,7 +25,9 @@
   var listeners = [];
   function changed(id) { listeners.forEach(function (f) { try { f(id); } catch (e) {} }); }
   function persist(id) {
-    rec(id).at = new Date().toISOString();
+    var r = rec(id); r.at = new Date().toISOString();
+    // 내 임장(mine.js)에서 자료가 바뀌어도 어느 곳인지 알 수 있게 이름·동·주소를 같이 적어 둬요
+    if (AREA) B.forEach(function (b) { if (b[0] === id) { r.nm = b[1]; r.wh = AREA.sub; r.hr = hrefOf(AREA); } });
     saveLocal(); setSave("ok", "내 메모 저장됨");
   }
   function later(id) { clearTimeout(timers[id]); timers[id] = setTimeout(function () { timers[id] = null; persist(id); }, 800); }
@@ -534,6 +536,10 @@
 
   // 시작
   loadLocal(); showName();
+  if (!AREA && /[?&]mine\b/.test(location.search)) { // 내 임장 화면은 mine.js가 그려요
+    $("#homeLink").hidden = false; setSave("", "메모는 이 기기에만 저장");
+    return;
+  }
   if (!AREA) {
     $("#home").hidden = false; buildSeoul(); buildRecent();
     $("#recentClear").addEventListener("click", function () { if (confirm("최근 본 구역 목록을 모두 지울까요? 남긴 방문·통화·메모 기록은 그대로 있어요.")) { writeRecent([]); buildRecent(); } });
@@ -561,6 +567,9 @@
   TABS.forEach(function (n) { $("#tab-" + n).addEventListener("click", function () { showTab(n); }); });
   var t0 = "brokers";
   try { t0 = location.hash ? location.hash.slice(1) : (localStorage.getItem("cs-tab-" + areaId) || (areaId === "changsin" ? localStorage.getItem("changsin-tab") : "") || "brokers"); } catch (e) {}
+  var goTo = /^#card-(.+)$/.exec(location.hash || ""); // 내 임장에서 "카드로 가기"를 누르고 왔을 때
+  if (goTo) { t0 = "brokers"; try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
   showTab(t0);
   setSave("", "메모는 이 기기에만 저장");
+  if (goTo) setTimeout(function () { window.CS_APP.goCard(decodeURIComponent(goTo[1])); }, 300);
 })();

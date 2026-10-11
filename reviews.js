@@ -4,7 +4,7 @@
   var el = A.el, all = {}, mine = {}, myUid = "", sync = null, open = {};
   var KIND = { good: "친절해요", soso: "보통이에요", bad: "불친절해요" };
   try { mine = JSON.parse(localStorage.getItem("changsin-my-reviews") || "{}") || {}; } catch (e) {}
-  function saveMine() { try { localStorage.setItem("changsin-my-reviews", JSON.stringify(mine)); } catch (e) {} }
+  function saveMine() { try { localStorage.setItem("changsin-my-reviews", JSON.stringify(mine)); } catch (e) {} try { window.dispatchEvent(new Event("cs-my-reviews")); } catch (e) {} }
   function listOf(id) { return all[id] || []; }
   function isMine(r) { return myUid ? r.uid === myUid : r.uid === "local"; }
   function myOf(id) { var m = null; listOf(id).forEach(function (r) { if (isMine(r)) m = r; }); return m || mine[id] || null; }

@@ -27,6 +27,7 @@
     <p class="progress" id="progress"></p>
     <div class="bar">
       <a class="mini" id="homeLink" href="./" hidden>‹ 구역 고르기</a>
+      <a class="mini strong" id="mineLink" href="./?mine=1">내 임장</a>
       <button class="mini" id="nameBtn" type="button">리뷰에 쓸 이름 정하기</button>
       <button class="mini" id="installBtn" type="button" hidden>홈 화면에 설치</button>
       <span class="hint" id="iosHint" hidden>아이폰: 공유 버튼 → 홈 화면에 추가</span>
@@ -105,6 +106,23 @@
     <div id="askHomeSlot"></div>
 
     <p class="hint legend"><b>체크와 메모</b>는 이 기기에서 나만 봐요. <b>리뷰</b>는 회원 모두가 봐요.</p>
+  </section>
+
+  <section class="view" id="mineView" hidden>
+    <div class="blk">
+      <h2>여러 동에 남긴 내 기록</h2>
+      <p class="hint">중개업소 카드에 쓴 메모, 방문·통화, 동선, 내 리뷰를 동별로 모았어요. 최근에 기록한 곳이 위에 와요. "카드로 가기"를 누르면 그 동의 카드로 가요.</p>
+      <p class="progress mine-sum" id="mineSum"></p>
+      <div class="chips" id="mineFilters" role="group" aria-label="기록 골라 보기">
+        <button class="chip" type="button" data-f="all" aria-pressed="true">전체</button>
+        <button class="chip" type="button" data-f="memo" aria-pressed="false">메모 있음</button>
+        <button class="chip" type="button" data-f="done" aria-pressed="false">방문·통화</button>
+        <button class="chip" type="button" data-f="pick" aria-pressed="false">동선 담은 곳</button>
+        <button class="chip" type="button" data-f="review" aria-pressed="false">내 리뷰</button>
+      </div>
+      <div class="list" id="mineList"></div>
+      <p class="hint legend">메모·방문·통화·동선은 이 기기에만 저장돼서 다른 기기에서는 안 보여요. 리뷰는 로그인한 계정 것이 보여요.</p>
+    </div>
   </section>
 
   <section class="view" id="brokers" role="tabpanel" aria-labelledby="tab-brokers" hidden>
