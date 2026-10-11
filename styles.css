@@ -164,6 +164,13 @@ a.mini{text-decoration:none;display:inline-block}
 .dot[data-status="visit"]{background:#0B6E5F}
 .dot[data-pick="1"]{width:14px;height:14px;border-color:#1F3A5F;border-width:3px}
 .dot.nb{width:9px;height:9px;background:#EE9BC9;opacity:.95}
+/* 방문함: 검은 바탕에 흰 체크, 크게 / 통화함: 파란 점 (다른 동 곳도 같아요). 구역 경계선 색(초록·파랑·주황·회색)과 헷갈리지 않게 */
+.dot[data-status="visit"],.dot.nb[data-status="visit"]{width:16px;height:16px;background:#14171F;border:2px solid #fff;box-shadow:0 0 0 1.5px #14171F;opacity:1;z-index:2}
+.dot[data-status="visit"]::before{content:"";position:absolute;left:3.5px;top:1px;width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.dot[data-status="call"],.dot.nb[data-status="call"]{width:12px;height:12px;background:#2460A7;opacity:1}
+.dleg{padding-top:6px}
+.dleg .dot{display:inline-block;flex:none}
+.dleg .dot::after{content:none}
 .ztip .tg.pick{flex:none;align-self:flex-start;margin:3px 0;padding:5px 10px;font-size:12px}
 .ztip a{color:#0B6E5F;font-weight:600}
 .pin{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:#0B6E5F;color:#fff;font:600 13px/1 system-ui,sans-serif;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
