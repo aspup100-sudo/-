@@ -503,6 +503,7 @@
     setName: function (n) { me = n || ""; },
     refilter: function () { applyFilter(); },
     visible: visible, picks: picks, setPick: setPick,
+    setStatus: function (id, s) { var r = rec(id); r.status = s; paint(id); progress(); applyFilter(); persist(id); changed(id); },
     all: all, addExtra: addExtra,
     setPicks: function (ids, on) { // 여러 곳을 한꺼번에 담거나 빼기
       var n = 0; ids.forEach(function (id) { if (!cards[id]) return; var r = rec(id); if (!!r.pick !== !!on) { r.pick = on ? 1 : 0; r.at = new Date().toISOString(); paint(id); n++; } });

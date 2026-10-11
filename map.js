@@ -69,6 +69,7 @@
   window.CS_MAP = {
     sdk: sdk,
     live: liveAttach,
+    liveStart: function () { if (live.watch == null) liveToggle(); },
     onHere: function (f) { live.subs.push(f); },
     here: function () { return live.ll; },
     geo: function (id) { return cache.p[id] || null; },

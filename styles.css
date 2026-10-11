@@ -350,3 +350,14 @@ html.map-fs .totop{display:none}
 #rmapBox.fs .kmap{flex:1 1 auto;height:auto;min-height:0}
 #rmapBox.fs .rm-fs{top:calc(12px + env(safe-area-inset-top,0px))}
 body.fs-lock{overflow:hidden}
+/* 길 안내 */
+.rm-go{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:6;font-size:15px;padding:8px 18px;box-shadow:2px 2px 0 var(--rule)}
+.rt-nav{position:absolute;left:8px;right:8px;bottom:8px;z-index:7;background:var(--surface);border:1.5px solid var(--pen);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:3px 3px 0 var(--rule)}
+.rt-nav p{margin:0}
+.nav-to{display:flex;align-items:center;gap:8px;font-size:16px}
+.nav-left{font-size:14px;color:var(--muted)}
+.nav-left.near{color:var(--first);font-weight:700;font-size:16px}
+.rt-nav .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.rt-nav .mini{font-size:14px;padding:6px 12px}
+#rmapBox.fs .rt-nav{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+#rmapBox .kmap{position:relative;z-index:0} /* 지도 안 표시가 안내 칸 위로 올라오지 않게 */

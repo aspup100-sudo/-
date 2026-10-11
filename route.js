@@ -110,6 +110,7 @@
       seq.forEach(function (p, i) { var prev = i ? seq[i - 1].ll : (st ? st.ll : null); var d = prev ? dist(prev, p.ll) : null; legs.push(d); if (d != null) walk += d; });
       var stay = seq.length * dwell;
       // way: 실제 걷는 길을 받았으면 {legs, line}, 아직이거나 못 받았으면 null (직선 어림)
+      navSeq = seq; if (nav) setTimeout(navUpdate, 0);
       function show(way, wayNote) {
         var lg = legs, wm, total;
         if (way) { lg = legs.map(function (d) { return d == null ? null : 0; }); var k = 0; lg = lg.map(function (d) { return d == null ? null : way.legs[k++]; }); }
@@ -150,7 +151,7 @@
       if (rg) { var pg = new kakao.maps.Polygon({ path: rg.poly.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.8, fillColor: "#F2A65A", fillOpacity: 0.1 }); pg.setMap(rmap); drawn.push(pg); }
       if (way) line = way.line.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }); // 실제 걷는 길 모양
       var pl = new kakao.maps.Polyline({ path: line, strokeWeight: 4, strokeColor: "#0B6E5F", strokeOpacity: 0.85, strokeStyle: way ? "solid" : "shortdash" }); pl.setMap(rmap); drawn.push(pl);
-      rmap.relayout(); rmap.setBounds(b, 30, 30, 30, 30); lastB = b;
+      lastB = b; rmap.relayout(); if (!nav) rmap.setBounds(b, 30, 30, 30, 30);
     }).catch(function () { $("#rmapBox").hidden = true; });
   }
 
@@ -167,6 +168,61 @@
   fsBtn.addEventListener("click", function () { setFs(!fsBox.classList.contains("fs")); });
   window.addEventListener("popstate", function () { setFs(false, true); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") setFs(false); });
+
+  // 길 안내: "안내 시작"을 누르면 전체 화면으로 펼치고, 내 위치를 따라가며 다음 곳까지 걷는 길을 그려 줘요.
+  // 가까이(30m) 오면 "도착"을 알려 주고, "방문함 · 다음"을 누르면 방문함으로 표시하고 다음 곳으로 넘어가요.
+  var navSeq = [], nav = null, navBox = $("#rtNav"), goBtn = $("#rtGo");
+  // 다음 곳: 동선 순서에서 아직 방문 안 했고 건너뛰지 않은 첫 곳 (방문하면 순서를 다시 짜도 그대로 맞아요)
+  function navNext() { for (var i = 0; i < navSeq.length; i++) if (A.status(navSeq[i].id) !== "visit" && !nav.skip[navSeq[i].id]) return i; return -1; }
+  function navClear() { if (nav && nav.line) nav.line.setMap(null); if (nav) nav.line = null; }
+  function navStop() { navClear(); nav = null; navBox.hidden = true; goBtn.hidden = false; fsBox.classList.remove("nav-on"); }
+  function navDraw(path) {
+    var kakao = window.kakao; if (!kakao || !rmap || !nav) return;
+    navClear();
+    nav.line = new kakao.maps.Polyline({ path: path.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }), strokeWeight: 6, strokeColor: "#1A73E8", strokeOpacity: 0.9, strokeStyle: "solid", zIndex: 4 });
+    nav.line.setMap(rmap);
+  }
+  function navPanel() {
+    if (!nav) return;
+    navBox.textContent = ""; navBox.hidden = false;
+    nav.i = navNext();
+    if (nav.i < 0) { navBox.appendChild(el("b", null, "담은 곳을 모두 들렀어요. 수고하셨어요!")); var e0 = el("button", "mini", "안내 끝"); e0.type = "button"; e0.addEventListener("click", navStop); navBox.appendChild(e0); navClear(); return; }
+    var p = navSeq[nav.i], here = M && M.here(), d = here ? dist(here, p.ll) : null, near = d != null && d <= 30;
+    var t = el("p", "nav-to"); t.appendChild(el("span", "rt-n", String(nav.i + 1))); t.appendChild(el("b", null, p.name)); navBox.appendChild(t);
+    navBox.appendChild(el("p", "nav-left" + (near ? " near" : ""), !here ? "내 위치를 찾는 중이에요. 위치 사용을 허용해 주세요." : near ? "도착했어요!" : "남은 거리 약 " + wmeters(nav.left || d * DETOUR) + " · 걸어서 약 " + wmins(nav.left || d * DETOUR) + "분" + (nav.left ? "" : " (어림)")));
+    var row = el("div", "row");
+    var ok = el("button", "mini" + (near ? " strong" : ""), "방문함 · 다음"); ok.type = "button";
+    ok.addEventListener("click", function () { nav.at = null; A.setStatus(p.id, "visit"); navUpdate(); });
+    var sk = el("button", "mini", "건너뛰기"); sk.type = "button";
+    sk.addEventListener("click", function () { nav.skip[p.id] = 1; nav.at = null; navUpdate(); });
+    var kk = el("a", null, "카카오맵 길안내"); kk.href = "https://map.kakao.com/link/to/" + encodeURIComponent(p.name) + "," + p.ll[0] + "," + p.ll[1]; kk.target = "_blank"; kk.rel = "noopener";
+    var en = el("button", "mini", "안내 끝"); en.type = "button"; en.addEventListener("click", navStop);
+    row.appendChild(ok); row.appendChild(sk); row.appendChild(kk); row.appendChild(en); navBox.appendChild(row);
+  }
+  // 위치가 바뀔 때마다: 지도를 내 위치로 옮기고, 25m 넘게 움직였으면 다음 곳까지 걷는 길을 다시 받아요
+  function navUpdate() {
+    if (!nav) return;
+    var here = M && M.here(); nav.i = navNext();
+    if (nav.i >= 0 && here) {
+      var p = navSeq[nav.i], kakao = window.kakao;
+      if (kakao && rmap) rmap.panTo(new kakao.maps.LatLng(here[0], here[1]));
+      if (!nav.at || dist(nav.at, here) > 25 || nav.to !== p.id) {
+        nav.at = here; nav.to = p.id; nav.left = 0;
+        navDraw([here, p.ll]);
+        walkRoute([here, p.ll]).then(function (w) { if (!nav || nav.to !== p.id) return; if (w) { nav.left = w.legs[0]; navDraw(w.line); } navPanel(); });
+      }
+    }
+    navPanel();
+  }
+  goBtn.addEventListener("click", function () {
+    if (!navSeq.length) return;
+    nav = { i: 0, skip: {}, at: null, left: 0 }; goBtn.hidden = true; fsBox.classList.add("nav-on");
+    setFs(true); if (M && M.liveStart) M.liveStart();
+    if (rmap && window.kakao) rmap.setLevel(3);
+    navUpdate();
+  });
+  if (M && M.onHere) M.onHere(function () { navUpdate(); });
+  window.addEventListener("popstate", function () { if (nav) navStop(); });
 
   // 한꺼번에 담기: 지도에서 영역을 그리거나, 재개발 구역 주변을 고르거나
   var note = $("#rtNote"), selZone = $("#rtZone"), btnClear = $("#rtClear");
