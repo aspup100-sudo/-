@@ -21,5 +21,5 @@ window.CS_CONFIG = {
   kakaoKey: "228aeed5441b5aa1165cdc79ea1b9a59",
   // 카카오 로그인. restKey는 카카오 앱의 REST API 키, worker는 중계 서버 주소(tools/kakao-login 안내 참고).
   // 둘 중 하나라도 비어 있으면 "카카오로 시작하기" 버튼이 숨어 있어요.
-  kakaoLogin: { restKey: "", worker: "" }
+  kakaoLogin: { restKey: "4c1dcbff0d55643e62576c07b3b13232", worker: "https://imjang-kakao.aspup101.workers.dev" }
 };
