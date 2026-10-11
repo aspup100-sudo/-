@@ -289,3 +289,9 @@ a.chip.zoned::after{content:"구역정보";margin-left:6px;font-size:11px;font-w
 .deal-t{font-size:13px;color:var(--muted)}
 .deal-d{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .deal-s{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+/* 최근 본 구역 지우기 */
+.recent-del{font:inherit;font-size:20px;line-height:1;width:32px;height:32px;margin:-6px -6px -6px 0;border:0;background:none;color:var(--muted,#888);cursor:pointer;border-radius:50%;flex:none}
+.recent-del:hover,.recent-del:focus-visible{background:rgba(0,0,0,.06);color:inherit}
+.area.recent .area-go{margin-left:auto}
+#recentBlk h2{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.recent-clear{font-size:13px;padding:0}

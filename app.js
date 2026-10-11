@@ -343,11 +343,15 @@
       });
       if (r.length) writeRecent(r);
     }
-    var list = $("#recentList"); list.textContent = ""; $("#recentHint").hidden = r.length > 0;
+    var list = $("#recentList"); list.textContent = ""; $("#recentHint").hidden = r.length > 0; $("#recentClear").hidden = r.length < 2;
     r.forEach(function (x) {
       if (!x || !x.h || !x.n) return;
       var c = el("a", "area recent"); c.href = x.h;
-      var h = el("div", "area-head"); h.appendChild(el("span", "area-name", x.n)); h.appendChild(el("span", "area-go", "보기 ›")); c.appendChild(h);
+      var h = el("div", "area-head"); h.appendChild(el("span", "area-name", x.n)); h.appendChild(el("span", "area-go", "보기 ›"));
+      // 목록에서만 빼요. 그 구역에 남긴 방문·통화·메모 기록은 그대로 남아요.
+      var del = el("button", "recent-del", "×"); del.type = "button"; del.setAttribute("aria-label", x.n + " 최근 목록에서 지우기");
+      del.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); writeRecent((readRecent() || []).filter(function (y) { return y && y.h !== x.h; })); buildRecent(); });
+      h.appendChild(del); c.appendChild(h);
       if (x.s) c.appendChild(el("p", "who", x.s));
       var ul = el("ul", "facts");
       ul.appendChild(el("li", null, "중개업소 " + x.c + "곳"));
@@ -520,6 +524,7 @@
   loadLocal(); showName();
   if (!AREA) {
     $("#home").hidden = false; buildSeoul(); buildRecent();
+    $("#recentClear").addEventListener("click", function () { if (confirm("최근 본 구역 목록을 모두 지울까요? 남긴 방문·통화·메모 기록은 그대로 있어요.")) { writeRecent([]); buildRecent(); } });
     if (window.CS_BOOT_ERR) { $("#bootErr").hidden = false; $("#bootErr").textContent = window.CS_BOOT_ERR; }
     $("#progress").textContent = "재개발·재건축 구역별 중개업소와 리뷰";
     setSave("", "");
