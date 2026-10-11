@@ -4,8 +4,8 @@
   var A = window.CS_APP, cfg = window.CS_CONFIG || {}; if (!A) return;
   var $ = A.$, body = document.body;
   var configured = !!(cfg.firebase && cfg.firebase.projectId), need = configured && !!cfg.requireLogin;
-  var view = $("#authView"), lf = $("#loginForm"), sf = $("#signupForm"), rf = $("#resetForm"), wait = $("#authWait"), acct = $("#acctDlg"), btn = $("#nameBtn");
-  var sync = null, user = null;
+  var view = $("#authView"), lf = $("#loginForm"), sf = $("#signupForm"), rf = $("#resetForm"), vf = $("#verifyForm"), wait = $("#authWait"), acct = $("#acctDlg"), btn = $("#nameBtn");
+  var sync = null, user = null, pend = null; // pend: 로그인은 했지만 이메일 인증 전인 회원
   // 카카오 로그인: config.js의 kakaoLogin에 REST 키와 중계 서버 주소가 있어야 버튼이 보여요.
   var kk = cfg.kakaoLogin || {}, kkOn = configured && !!(kk.restKey && kk.worker), kkBox = $("#kakaoBox"), kkErr = $("#kkErr");
   var kkBase = location.origin + location.pathname, kkBack = null;
@@ -25,9 +25,9 @@
   function setSeen(u) { try { if (u) localStorage.setItem("cs-auth-seen", JSON.stringify({ nick: u.nick })); else localStorage.removeItem("cs-auth-seen"); } catch (e) {} }
   var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   function lock(on) { body.classList.toggle("locked", !!on); view.hidden = !on; if (on) window.scrollTo(0, 0); }
-  function mode(m) { // wait | login | signup | reset
-    wait.hidden = m !== "wait"; kkBox.hidden = !kkOn || (m !== "login" && m !== "signup"); lf.hidden = m !== "login"; sf.hidden = m !== "signup"; rf.hidden = m !== "reset";
-    $("#authTitle").textContent = m === "signup" ? "회원가입" : m === "reset" ? "비밀번호 찾기" : "로그인";
+  function mode(m) { // wait | login | signup | reset | verify
+    wait.hidden = m !== "wait"; vf.hidden = m !== "verify"; kkBox.hidden = !kkOn || (m !== "login" && m !== "signup"); lf.hidden = m !== "login"; sf.hidden = m !== "signup"; rf.hidden = m !== "reset";
+    $("#authTitle").textContent = m === "signup" ? "회원가입" : m === "reset" ? "비밀번호 찾기" : m === "verify" ? "이메일 인증" : "로그인";
     var f = m === "login" ? $("#liId") : m === "signup" ? $("#suId") : m === "reset" ? $("#rsId") : null; if (f) setTimeout(function () { try { f.focus(); } catch (e) {} }, 50);
   }
   function label() { if (!configured) return; btn.textContent = user ? "내 계정: " + (user.nick || user.email) : "로그인"; }
@@ -44,7 +44,7 @@
   window.CS_AUTH = {
     active: false,
     user: function () { return user; },
-    requireLogin: function () { if (!sync) return; mode("login"); lock(true); },
+    requireLogin: function () { if (!sync) return; mode(pend ? "verify" : "login"); lock(true); },
     openAccount: function () {
       if (!user) { window.CS_AUTH.requireLogin(); return; }
       if (user.email) { $("#acIdRow").innerHTML = '이메일 <b id="acId"></b>'; $("#acId").textContent = user.email; }
@@ -82,6 +82,18 @@
         kkErr.textContent = x && x.code === "auth/network-request-failed" ? ERR[x.code] : "카카오 로그인이 잘 안 됐어요. 잠시 뒤에 다시 해주세요.";
       }).then(function () { b.disabled = false; kkCode = null; });
   }
+  vf.addEventListener("submit", function (e) {
+    e.preventDefault(); var err = $("#vfErr"); err.textContent = ""; $("#vfOk").textContent = "";
+    busy(vf, true);
+    sync.auth.checkVerify().then(function (ok) {
+      if (!ok) err.textContent = "아직 인증이 안 됐어요. 메일의 링크를 누른 뒤 다시 눌러 주세요.";
+    }, function (x) { say(err, x); }).then(function () { busy(vf, false); });
+  });
+  $("#vfResend").addEventListener("click", function () {
+    var err = $("#vfErr"), ok = $("#vfOk"); err.textContent = ""; ok.textContent = "";
+    sync.auth.sendVerify().then(function () { ok.textContent = "인증 메일을 다시 보냈어요."; }, function (x) { say(err, x); });
+  });
+  $("#vfOut").addEventListener("click", function () { sync.auth.signOut(); });
   var back = $("#authBack"); back.addEventListener("click", function () { lock(false); });
 
   lf.addEventListener("submit", function (e) {
@@ -127,7 +139,11 @@
     sync = s; window.CS_AUTH.active = true;
     if (kkCode) kakaoFinish();
     s.auth.onChange(function (u) {
-      user = u; label();
+      pend = u && !u.verified ? u : null; user = pend ? null : u; label();
+      if (pend) { // 이메일 인증 전: 인증 화면만 보여요
+        setSeen(null); A.setName(""); $("#vfMail").textContent = u.email; $("#vfErr").textContent = ""; $("#vfOk").textContent = "";
+        mode("verify"); lock(true); return;
+      }
       if (u) { setSeen(u); A.setName(u.nick || (u.email || "").split("@")[0]); lock(false); }
       else { setSeen(null); A.setName(""); if (need) { mode("login"); lock(true); } }
     });

@@ -75,6 +75,14 @@
         <button class="rv-save" type="submit">재설정 메일 보내기</button>
         <button class="lkbtn" type="button" id="toLogin2">‹ 로그인으로 돌아가기</button>
       </form>
+      <form id="verifyForm" hidden novalidate>
+        <p class="hint"><b id="vfMail"></b>로 인증 메일을 보냈어요. 메일의 링크를 누른 뒤 아래 버튼을 눌러 주세요. 몇 분이 지나도 안 오면 스팸함을 확인해 주세요.</p>
+        <p class="auth-err" id="vfErr" role="alert"></p>
+        <p class="hint" id="vfOk" role="status"></p>
+        <button class="rv-save" type="submit">인증했어요</button>
+        <button class="lkbtn" type="button" id="vfResend">인증 메일 다시 보내기</button>
+        <button class="lkbtn" type="button" id="vfOut">다른 계정으로 로그인</button>
+      </form>
       <button class="lkbtn" type="button" id="authBack" hidden>닫기</button>
     </div>
   </section>

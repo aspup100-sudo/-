@@ -2,11 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // 리뷰: 로그인한 회원만 읽고, 한 회원이 중개업소 한 곳에 하나씩 써요. 고치기·지우기는 쓴 회원만.
-    // 쓸 수 있는 회원: 이메일 가입(password) 또는 카카오 로그인(custom, uid가 kakao:로 시작).
+    // 쓸 수 있는 회원: 이메일 인증을 마친 이메일 가입(password) 또는 카카오 로그인(custom, uid가 kakao:로 시작).
     match /rooms/{room}/reviews/{id} {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null
-                   && (request.auth.token.firebase.sign_in_provider == 'password'
+                   && ((request.auth.token.firebase.sign_in_provider == 'password' && request.auth.token.email_verified == true)
                        || (request.auth.token.firebase.sign_in_provider == 'custom' && request.auth.uid.matches('kakao:[0-9]+')))
                    && request.resource.data.keys().hasOnly(['broker', 'uid', 'stars', 'kind', 'fake', 'text', 'by', 'at'])
                    && request.resource.data.uid == request.auth.uid

@@ -20,7 +20,8 @@ const done = window.__csSyncResolve || (() => {});
     const rev = fs.collection(db, "rooms", room, "reviews");
     auth.languageCode = "ko"; // 재설정 메일을 한국어로
     const mail = e => String(e).trim().toLowerCase();
-    const shape = u => u ? { uid: u.uid, email: u.email || "", nick: u.displayName || "" } : null;
+    // verified: 이메일 가입 회원은 메일 인증을 마쳐야 true. 카카오 회원은 이메일이 없어서 항상 true로 봐요.
+    const shape = u => u ? { uid: u.uid, email: u.email || "", nick: u.displayName || "", verified: !u.email || !!u.emailVerified } : null;
     const subs = []; let known = false, cur = null;
     const emit = () => subs.forEach(f => { try { f(shape(cur)); } catch (e) {} });
     au.onAuthStateChanged(auth, u => {
@@ -35,6 +36,7 @@ const done = window.__csSyncResolve || (() => {});
         async signUp(email, pw, nick) {
           const c = await au.createUserWithEmailAndPassword(auth, mail(email), pw);
           await au.updateProfile(c.user, { displayName: nick });
+          try { await au.sendEmailVerification(c.user); } catch (e) {} // 실패해도 인증 화면에서 다시 보낼 수 있어요
           cur = c.user; known = true; emit(); return shape(cur);
         },
         async signIn(email, pw) { const c = await au.signInWithEmailAndPassword(auth, mail(email), pw); return shape(c.user); },
@@ -42,6 +44,12 @@ const done = window.__csSyncResolve || (() => {});
           const c = await au.signInWithCustomToken(auth, token);
           if (!c.user.displayName && nick) { await au.updateProfile(c.user, { displayName: nick }); }
           cur = c.user; known = true; emit(); return shape(cur);
+        },
+        sendVerify() { if (!cur) return Promise.reject(new Error("signed out")); return au.sendEmailVerification(cur); },
+        async checkVerify() { // 메일의 링크를 누른 뒤: 계정 정보를 다시 받고, 리뷰 규칙이 알도록 토큰도 새로 받아요
+          if (!cur) return false;
+          await cur.reload(); if (cur.emailVerified) await cur.getIdToken(true);
+          emit(); return !!cur.emailVerified;
         },
         resetPassword(email) { return au.sendPasswordResetEmail(auth, mail(email)); },
         signOut() { return au.signOut(auth); },
