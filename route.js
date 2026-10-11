@@ -142,10 +142,17 @@
       drawn.forEach(function (o) { o.setMap(null); }); drawn = [];
       var b = new kakao.maps.LatLngBounds(), line = [];
       if (st) { var sp = new kakao.maps.LatLng(st.ll[0], st.ll[1]); line.push(sp); b.extend(sp); var s = document.createElement("span"); s.className = "pin start"; s.textContent = "출발"; var so = new kakao.maps.CustomOverlay({ position: sp, content: s, yAnchor: 0.5 }); so.setMap(rmap); drawn.push(so); }
+      // 같은 건물처럼 거의 같은 자리(15m 안)에 있는 곳은 번호표 하나에 "31·32"처럼 함께 적어요 (겹쳐서 가려지지 않게)
+      var spots = [];
       seq.forEach(function (p, i) {
         var ll = new kakao.maps.LatLng(p.ll[0], p.ll[1]); line.push(ll); b.extend(ll);
-        var n = document.createElement("span"); n.className = "pin"; n.textContent = String(i + 1); n.title = p.name;
-        var o = new kakao.maps.CustomOverlay({ position: ll, content: n, yAnchor: 0.5 }); o.setMap(rmap); drawn.push(o);
+        var g = spots.filter(function (x) { return dist(x.ll, p.ll) < 15; })[0];
+        if (g) { g.n.push(i + 1); g.names.push(p.name); } else spots.push({ ll: p.ll, pos: ll, n: [i + 1], names: [p.name] });
+      });
+      spots.forEach(function (x) {
+        var n = document.createElement("span"); n.className = "pin" + (x.n.length > 1 ? " multi" : "");
+        n.textContent = x.n.length > 3 ? x.n[0] + "~" + x.n[x.n.length - 1] + " (" + x.n.length + "곳)" : x.n.join("·"); n.title = x.names.join(", ");
+        var o = new kakao.maps.CustomOverlay({ position: x.pos, content: n, yAnchor: 0.5 }); o.setMap(rmap); drawn.push(o);
       });
       var rg = M.region && M.region(); // 중개업소 탭에서 고른 영역도 같이 그려요
       if (rg) { var pg = new kakao.maps.Polygon({ path: rg.poly.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.8, fillColor: "#F2A65A", fillOpacity: 0.1 }); pg.setMap(rmap); drawn.push(pg); }
