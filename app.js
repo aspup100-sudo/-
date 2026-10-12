@@ -69,7 +69,6 @@
       if (stt[1] === "new") top.appendChild(el("span", "badge fresh", "새로 등록 " + md));
       else { top.appendChild(el("span", "badge gone", "등록부에서 사라짐 " + md)); c.classList.add("is-gone"); c.appendChild(el("p", "tags", "폐업했거나 다른 곳으로 옮겼을 수 있어요. 가기 전에 전화로 확인하세요.")); }
     }
-    if (b[7]) c.appendChild(el("p", "tags", "올린 매물: " + b[7]));
     var ad = el("p", "row"); ad.appendChild(el("span", "v", b[2])); ad.appendChild(mapLinks(b[3], b[11])); c.appendChild(ad);
     var tl = el("p", "row");
     // 번호가 여러 개면("02-498-9200 02-464-2266") 줄을 나눠 번호마다 따로 걸 수 있게 해요
