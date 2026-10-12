@@ -1,0 +1,20 @@
+/* 지도 탭(동 화면의 중개업소 탭): 지도를 화면 가득 깔고, 중개업소 목록은 아래에서 끌어올리는 시트로 */
+:root{--bnav-h:calc(62px + env(safe-area-inset-bottom,0px));--peek:54vh}
+@supports (height:1dvh){:root{--peek:54dvh}}
+body.mapsheet:not(.tab-brokers) #kmapBox:not(.fs){visibility:hidden;position:fixed;left:-9999px;width:360px}
+body.mapsheet.tab-brokers #kmapBox:not(.fs):not([hidden]){position:fixed;left:0;right:0;top:0;bottom:var(--bnav-h);z-index:0;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;max-width:none;background:var(--bg3,#ECEEF1)}
+body.mapsheet.tab-brokers #kmapBox:not(.fs) .kmap{position:absolute;inset:0;height:auto;border-radius:0;margin:0}
+body.mapsheet.tab-brokers #kmapBox:not(.fs) .map-head,body.mapsheet.tab-brokers #kmapBox:not(.fs) .zleg{display:none}
+/* 지도 위 버튼: 흰 둥근 칸 */
+body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar,body.mapsheet.tab-brokers #kmapBox:not(.fs) .me-bar,body.mapsheet.tab-brokers #kmapBox:not(.fs) #quietBtn{position:absolute;z-index:3;margin:0;background:var(--card,#fff);border-radius:12px;box-shadow:0 2px 10px rgba(22,24,28,.14)}
+body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar{left:12px;right:auto;top:calc(12px + env(safe-area-inset-top,0px));padding:6px 8px;max-width:calc(100% - 24px)}
+body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar .hint:empty{display:none}
+body.mapsheet.tab-brokers #kmapBox:not(.fs) #quietBtn{right:12px;top:calc(12px + env(safe-area-inset-top,0px));padding:8px 12px;font-size:13px;text-decoration:none}
+body.mapsheet.tab-brokers #kmapBox:not(.fs) .me-bar{left:12px;top:calc(64px + env(safe-area-inset-top,0px));padding:4px 10px}
+/* 시트: 페이지를 위로 밀면(스크롤) 시트가 올라와요. 지도 위 빈 곳은 지도를 그대로 만질 수 있게 */
+body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap{position:relative;z-index:1;pointer-events:none;padding-top:var(--peek);min-height:calc(var(--peek) + 100vh - var(--bnav-h));background:linear-gradient(transparent var(--peek),var(--bg2,var(--bg)) var(--peek))}
+body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap > *{pointer-events:auto}
+body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap > header.top{border-radius:22px 22px 0 0;box-shadow:0 -6px 18px rgba(22,24,28,.12);padding-top:26px;border-bottom:1px solid var(--ln,var(--line))}
+.grip{display:none}
+body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap .grip{display:block;position:absolute;left:0;right:0;top:0;height:24px;border:0;background:transparent;cursor:pointer;padding:0}
+.grip::before{content:"";position:absolute;left:50%;top:9px;width:42px;height:5px;margin-left:-21px;border-radius:3px;background:var(--mute,#A0A6B0);opacity:.6}

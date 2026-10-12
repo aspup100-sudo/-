@@ -335,6 +335,7 @@
     if (TABS.indexOf(name) < 0) name = "brokers";
     tab = name;
     TABS.forEach(function (n) { $("#" + n).hidden = n !== name; $("#tab-" + n).setAttribute("aria-selected", String(n === name)); });
+    document.body.classList.toggle("tab-brokers", name === "brokers");
     try { localStorage.setItem("cs-tab-" + areaId, name); } catch (e) {}
     changed("tab:" + name);
   }
@@ -576,6 +577,15 @@
   saveRecent(); // 첫 화면의 "최근 본 구역"에 올려요. 나갈 때 내 기록 수를 다시 적어요.
   window.addEventListener("pagehide", saveRecent);
   document.addEventListener("visibilitychange", function () { if (document.hidden) saveRecent(); });
+  // 지도 탭: 지도를 화면 가득 깔고 목록은 아래 시트로 (sheet.css). 지도 상자를 본문 맨 앞으로 옮겨 시트 뒤에 깔아요.
+  (function () {
+    var kb = $("#kmapBox"), wrap = document.querySelector(".wrap"); if (!kb || !wrap) return;
+    document.body.insertBefore(kb, wrap); document.body.classList.add("mapsheet");
+    $("#grip").addEventListener("click", function () { // 손잡이를 누르면 올리기·내리기
+      var top = kb.hidden ? 0 : wrap.offsetTop + parseFloat(getComputedStyle(wrap).paddingTop || 0);
+      window.scrollTo({ top: (window.pageYOffset || 0) > top / 2 ? 0 : top, behavior: "smooth" });
+    });
+  })();
   $("#homeLink").hidden = false; $("#tabs").hidden = false;
   if (AREA.svgMap) $("#svgMap").hidden = false; else $("#streets").hidden = false;
   if (!B.some(function (b) { return b[6]; })) { var fc = $('#filters .chip[data-f="first"]'); if (fc) fc.hidden = true; }
