@@ -5,7 +5,7 @@
 (function () {
   var q; try { q = new URLSearchParams(location.search); } catch (e) { q = { get: function () { return null; } }; }
   var gu = q.get("gu"), dong = q.get("dong"), area = q.get("area");
-  var REST = ["app.js", "reviews.js", "map.js", "route.js", "asks.js", "auth.js", "mine.js"];
+  var REST = ["app.js", "reviews.js", "map.js", "route.js", "asks.js", "auth.js", "mine.js", "talk.js", "nav.js"];
   function go() { REST.forEach(function (src) { var s = document.createElement("script"); s.src = "./" + src; s.async = false; document.body.appendChild(s); }); }
   function json(u) { return fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
   var up = window.CS_UPDATED || {};

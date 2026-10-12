@@ -501,6 +501,9 @@
       if (me) { then(me); return; } nameWaiters.push(then); openName();
     },
     setName: function (n) { me = n || ""; },
+    showMap: function () { // 중개업소 탭을 열고 지도가 보이게 맨 위로
+      showTab("brokers"); window.scrollTo(0, 0);
+    },
     refilter: function () { applyFilter(); },
     visible: visible, picks: picks, setPick: setPick,
     setStatus: function (id, s) { var r = rec(id); r.status = s; paint(id); progress(); applyFilter(); persist(id); changed(id); },
@@ -546,15 +549,17 @@
   // 시작
   loadLocal(); showName();
   if (!AREA && /[?&]mine\b/.test(location.search)) { // 내 임장 화면은 mine.js가 그려요
-    $("#homeLink").hidden = false; setSave("", "메모는 이 기기에만 저장");
+    setSave("", "메모는 이 기기에만 저장");
     return;
   }
+  if (!AREA && /[?&]talk\b/.test(location.search)) { setSave("", ""); return; } // 커뮤니티 화면은 talk.js가 그려요
   if (!AREA) {
     $("#home").hidden = false; buildSeoul(); buildRecent();
     $("#recentClear").addEventListener("click", function () { if (confirm("최근 본 구역 목록을 모두 지울까요? 남긴 방문·통화·메모 기록은 그대로 있어요.")) { writeRecent([]); buildRecent(); } });
     if (window.CS_BOOT_ERR) { $("#bootErr").hidden = false; $("#bootErr").textContent = window.CS_BOOT_ERR; }
     $("#progress").textContent = "재개발·재건축 구역별 중개업소와 리뷰";
     setSave("", "");
+    if (location.hash === "#seoul") setTimeout(function () { var b = $("#seoulBlk"); if (b && !b.hidden) b.scrollIntoView({ block: "start" }); }, 200); // 아래 메뉴 "지도"
     return;
   }
   document.title = AREA.name + " 임장 수첩"; $("#title").textContent = AREA.name + " 임장 수첩";
@@ -577,8 +582,11 @@
   var t0 = "brokers";
   try { t0 = location.hash ? location.hash.slice(1) : (localStorage.getItem("cs-tab-" + areaId) || (areaId === "changsin" ? localStorage.getItem("changsin-tab") : "") || "brokers"); } catch (e) {}
   var goTo = /^#card-(.+)$/.exec(location.hash || ""); // 내 임장에서 "카드로 가기"를 누르고 왔을 때
+  var toMap = location.hash === "#map"; // 아래 메뉴 "지도"를 누르고 왔을 때
+  if (toMap) { t0 = "brokers"; try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
   if (goTo) { t0 = "brokers"; try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
   showTab(t0);
   setSave("", "메모는 이 기기에만 저장");
+  if (toMap) window.CS_APP.showMap();
   if (goTo) setTimeout(function () { window.CS_APP.goCard(decodeURIComponent(goTo[1])); }, 300);
 })();

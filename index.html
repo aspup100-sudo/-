@@ -103,6 +103,11 @@
       <p class="hint" id="recentHint" hidden>아직 본 구역이 없어요. 위에서 구와 동을 고르면 여기에 쌓여요.</p>
       <div class="list" id="recentList"></div>
     </div>
+    <div class="blk" id="talkHomeBlk" hidden>
+      <h2>커뮤니티 새 글</h2>
+      <div class="list" id="talkHomeList"></div>
+      <a class="lkbtn" href="./?talk=1">커뮤니티 더 보기 ›</a>
+    </div>
     <div id="askHomeSlot"></div>
 
     <p class="hint legend"><b>체크와 메모</b>는 이 기기에서 나만 봐요. <b>리뷰</b>는 회원 모두가 봐요.</p>
@@ -124,6 +129,32 @@
       <div class="list" id="mineList"></div>
       <p class="hint legend">메모·방문·통화·동선은 이 기기에만 저장돼서 다른 기기에서는 안 보여요. 리뷰는 로그인한 계정 것이 보여요.</p>
     </div>
+  </section>
+
+  <section class="view" id="talkView" hidden>
+    <div id="talkListBox">
+      <div class="chips" id="talkCats" role="group" aria-label="글 종류">
+        <button class="chip" type="button" data-c="" aria-pressed="true">전체</button>
+        <button class="chip" type="button" data-c="ask" aria-pressed="false">질문</button>
+        <button class="chip" type="button" data-c="visit" aria-pressed="false">임장 후기</button>
+        <button class="chip" type="button" data-c="news" aria-pressed="false">동네 소식</button>
+        <button class="chip" type="button" data-c="free" aria-pressed="false">자유</button>
+        <button class="chip" type="button" data-c="mine" aria-pressed="false">내 글</button>
+      </div>
+      <p class="hint" id="talkMsg" role="status"></p>
+      <div class="list" id="talkList"></div>
+    </div>
+    <div id="talkPost" hidden>
+      <button class="lkbtn" type="button" id="talkBack">‹ 목록으로</button>
+      <article class="post post-full" id="talkFull"></article>
+      <h2 id="talkCmH">댓글</h2>
+      <ul class="cm-list" id="talkCms"></ul>
+      <form class="cm-form" id="talkCmForm" novalidate>
+        <textarea id="talkCmText" rows="2" maxlength="500" placeholder="댓글을 남겨 주세요" aria-label="댓글"></textarea>
+        <div class="rv-acts"><button class="rv-save" type="submit">댓글 달기</button><span class="rv-msg" id="talkCmMsg" role="status"></span></div>
+      </form>
+    </div>
+    <p class="hint legend">회원 모두가 보는 곳이에요. 직접 겪은 일 위주로 써 주시고, 다른 분 개인정보나 연락처는 적지 말아 주세요.</p>
   </section>
 
   <section class="view" id="brokers" role="tabpanel" aria-labelledby="tab-brokers" hidden>
@@ -260,6 +291,30 @@
     <p class="foot">유형과 호가만 가져와요. 번지, 층, 대지지분 같은 자세한 내용은 구역 이름 옆 링크의 재개발닷컴이나 중개업소에서 확인하세요. 네이버에만 올라온 매물은 빠져 있을 수 있어요.</p>
   </div>
 </template>
+<button class="fab" id="talkWrite" type="button" hidden>+ 글쓰기</button>
+<nav class="bnav" id="bnav" aria-label="아래 메뉴">
+  <a href="./" data-n="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg><span>홈</span></a>
+  <a href="./?talk=1" data-n="talk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12.5h5"/></svg><span>커뮤니티</span></a>
+  <a href="./#seoul" data-n="map" id="bnavMap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.4"/></svg><span>지도</span></a>
+  <a href="./?mine=1" data-n="mine"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h10.5L19 6v14.5H6z"/><path d="M9 9h7M9 12.5h7M9 16h4"/></svg><span>내 임장</span></a>
+  <button type="button" data-n="me" id="bnavMe"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20.5c.8-4 3.8-6 7.5-6s6.7 2 7.5 6"/></svg><span>내 정보</span></button>
+</nav>
+<dialog id="postDlg">
+  <form id="postForm" novalidate>
+    <h2>글쓰기</h2>
+    <div class="chips" id="postCats" role="radiogroup" aria-label="글 종류">
+      <button class="chip" type="button" data-c="ask" aria-pressed="true">질문</button>
+      <button class="chip" type="button" data-c="visit" aria-pressed="false">임장 후기</button>
+      <button class="chip" type="button" data-c="news" aria-pressed="false">동네 소식</button>
+      <button class="chip" type="button" data-c="free" aria-pressed="false">자유</button>
+    </div>
+    <label class="fld">동 (적지 않아도 돼요)<input type="text" id="postDong" maxlength="20" placeholder="예: 창신동" autocomplete="off"></label>
+    <label class="fld">제목<input type="text" id="postTitle" maxlength="60" autocomplete="off"></label>
+    <label class="fld">내용<textarea id="postText" rows="6" maxlength="2000" placeholder="궁금한 점, 다녀온 후기, 동네 소식을 자유롭게 적어 주세요."></textarea></label>
+    <p class="auth-err" id="postErr" role="alert"></p>
+    <div class="acts"><button class="tg" type="button" id="postCancel">취소</button><button class="tg visit" type="submit" aria-pressed="true" id="postOk">올리기</button></div>
+  </form>
+</dialog>
 <button class="totop" id="toTop" type="button" hidden aria-label="맨 위로 올라가기">↑ 맨 위로</button>
 <dialog id="acctDlg">
   <div class="acct">

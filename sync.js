@@ -18,6 +18,7 @@ const done = window.__csSyncResolve || (() => {});
     const asked = new URLSearchParams(location.search).get("room") || cfg.room || "main";
     const room = (asked.match(/[A-Za-z0-9_-]{1,40}/) || ["main"])[0];
     const rev = fs.collection(db, "rooms", room, "reviews");
+    const posts = fs.collection(db, "rooms", room, "posts"); // 커뮤니티 글 (댓글은 글 아래 comments)
     auth.languageCode = "ko"; // 재설정 메일을 한국어로
     const mail = e => String(e).trim().toLowerCase();
     // verified: 이메일 가입 회원은 메일 인증을 마쳐야 true. 카카오 회원은 이메일이 없어서 항상 true로 봐요.
@@ -66,6 +67,35 @@ const done = window.__csSyncResolve || (() => {});
       async deleteReview(broker) {
         if (!cur) throw new Error("signed out");
         return fs.deleteDoc(fs.doc(rev, broker + "_" + cur.uid));
+      },
+      // 커뮤니티: 글 목록(최근 100개), 글쓰기·지우기, 댓글. 댓글 수(n)는 댓글을 달고 지울 때 함께 늘리고 줄여요.
+      subscribePosts(next, error) {
+        const q = fs.query(posts, fs.orderBy("at", "desc"), fs.limit(100));
+        return fs.onSnapshot(q, snap => next(snap.docs.map(d => Object.assign({ id: d.id }, d.data()))), error);
+      },
+      async addPost(body) {
+        if (!cur) throw new Error("signed out");
+        const r = await fs.addDoc(posts, Object.assign({}, body, { uid: cur.uid, n: 0 }));
+        return r.id;
+      },
+      async deletePost(id) { if (!cur) throw new Error("signed out"); return fs.deleteDoc(fs.doc(posts, id)); },
+      subscribeComments(pid, next, error) {
+        const q = fs.query(fs.collection(posts, pid, "comments"), fs.orderBy("at", "asc"), fs.limit(300));
+        return fs.onSnapshot(q, snap => next(snap.docs.map(d => Object.assign({ id: d.id }, d.data()))), error);
+      },
+      async addComment(pid, body) {
+        if (!cur) throw new Error("signed out");
+        const b = fs.writeBatch(db);
+        b.set(fs.doc(fs.collection(posts, pid, "comments")), Object.assign({}, body, { uid: cur.uid }));
+        b.update(fs.doc(posts, pid), { n: fs.increment(1) });
+        return b.commit();
+      },
+      async deleteComment(pid, cid) {
+        if (!cur) throw new Error("signed out");
+        const b = fs.writeBatch(db);
+        b.delete(fs.doc(posts, pid, "comments", cid));
+        b.update(fs.doc(posts, pid), { n: fs.increment(-1) });
+        try { return await b.commit(); } catch (e) { return fs.deleteDoc(fs.doc(posts, pid, "comments", cid)); } // 글이 이미 지워졌으면 댓글만
       }
     });
   } catch (e) {

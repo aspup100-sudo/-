@@ -1,6 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 글을 쓸 수 있는 회원: 이메일 인증을 마친 이메일 가입(password) 또는 카카오 로그인(custom, uid가 kakao:로 시작).
+    function member() {
+      return request.auth != null
+        && ((request.auth.token.firebase.sign_in_provider == 'password' && request.auth.token.email_verified == true)
+            || (request.auth.token.firebase.sign_in_provider == 'custom' && request.auth.uid.matches('kakao:[0-9]+')));
+    }
+    function str(v, lo, hi) { return v is string && v.size() >= lo && v.size() <= hi; }
+
     // 리뷰: 로그인한 회원만 읽고, 한 회원이 중개업소 한 곳에 하나씩 써요. 고치기·지우기는 쓴 회원만.
     // 쓸 수 있는 회원: 이메일 인증을 마친 이메일 가입(password) 또는 카카오 로그인(custom, uid가 kakao:로 시작).
     match /rooms/{room}/reviews/{id} {
@@ -19,6 +27,38 @@ service cloud.firestore {
                    && request.resource.data.by is string && request.resource.data.by.size() <= 20
                    && request.resource.data.at is string && request.resource.data.at.size() <= 40;
       allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // 커뮤니티 글: 로그인한 회원만 읽고, 인증한 회원이 써요. 지우기는 쓴 회원만.
+    // 다른 회원은 댓글 수(n)만 1씩 늘리거나 줄일 수 있어요(댓글 달기·지우기와 함께).
+    match /rooms/{room}/posts/{pid} {
+      allow read: if request.auth != null;
+      allow create: if member()
+                   && request.resource.data.keys().hasOnly(['uid', 'by', 'cat', 'dong', 'title', 'text', 'at', 'n'])
+                   && request.resource.data.uid == request.auth.uid
+                   && request.resource.data.cat in ['free', 'ask', 'visit', 'news']
+                   && str(request.resource.data.dong, 0, 20)
+                   && str(request.resource.data.title, 1, 60)
+                   && str(request.resource.data.text, 0, 2000)
+                   && str(request.resource.data.by, 1, 20)
+                   && str(request.resource.data.at, 1, 40)
+                   && request.resource.data.n == 0;
+      allow update: if member()
+                   && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['n'])
+                   && request.resource.data.n is int && request.resource.data.n >= 0
+                   && (request.resource.data.n == resource.data.n + 1 || request.resource.data.n == resource.data.n - 1);
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+
+      match /comments/{cid} {
+        allow read: if request.auth != null;
+        allow create: if member()
+                     && request.resource.data.keys().hasOnly(['uid', 'by', 'text', 'at'])
+                     && request.resource.data.uid == request.auth.uid
+                     && str(request.resource.data.text, 1, 500)
+                     && str(request.resource.data.by, 1, 20)
+                     && str(request.resource.data.at, 1, 40);
+        allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      }
     }
   }
 }
