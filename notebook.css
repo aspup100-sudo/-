@@ -1,8 +1,9 @@
-/* 현장 수첩 디자인: styles.css 위에 얹어요. 모눈종이 바탕, 볼펜 잉크, 형광펜 강조, 빨간 도장 */
+/* 현장 수첩 디자인: styles.css 위에 얹어요. 깔끔한 흰 바탕과 고딕체(Pretendard), 볼펜 잉크 선, 형광펜 강조, 빨간 도장 */
 :root{
-  --paper:#F7F6F0; --grid:rgba(60,110,170,.09); --sheet:#FFFEFA; --pen:#1E2A44; --pen-soft:#5B6478; --rule:#C9CED8;
-  --marker:#FFE866; --stamp:#C8372D; --stamp-soft:#FBE3DF; --tab:#E7E4D8;
-  --hand:"Nanum Pen Script","IBM Plex Sans KR",cursive; --display:var(--hand);
+  --paper:#FFFFFF; --grid:transparent; --sheet:#FFFFFF; --pen:#1E2A44; --pen-soft:#5B6478; --rule:#C9CED8;
+  --marker:#FFE866; --stamp:#C8372D; --stamp-soft:#FBE3DF; --tab:#F1F2F4;
+  --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --hand:var(--sans); --display:var(--sans); --body:var(--sans);
   --bg:var(--paper); --surface:var(--sheet); --ink:var(--pen); --muted:var(--pen-soft); --line:var(--rule);
   --accent:#2E5AA8; --accent-soft:#E3EBF8; --first:var(--stamp); --first-soft:var(--stamp-soft); --call:#2E5AA8; --call-soft:#E3EBF8;
 }
@@ -14,10 +15,10 @@
   --paper:#171B22; --grid:rgba(150,180,230,.06); --sheet:#1F242D; --pen:#E9E6DA; --pen-soft:#9EA5B3; --rule:#363D4A;
   --marker:#6B5E12; --stamp:#E8685C; --stamp-soft:#3A1F1C; --tab:#262C36;
   --accent:#8DB0EC; --accent-soft:#1F2C44; --call:#8DB0EC; --call-soft:#1F2C44}
-body{background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:18px 18px}
-/* 머리: 수첩 표지 제목은 손글씨 */
+body{background:var(--paper);letter-spacing:-.01em}
+/* 머리: 굵은 고딕 제목 */
 header.top{background:var(--paper);border-bottom:2px solid var(--pen);padding-block:14px 0}
-h1{font-family:var(--hand);font-size:38px;line-height:1;letter-spacing:0;font-weight:400}
+h1{font-family:var(--sans);font-size:26px;line-height:1.2;letter-spacing:-.02em;font-weight:800}
 .progress{margin:4px 0 10px}
 .progress b{background:linear-gradient(transparent 55%,var(--marker) 55%);padding:0 2px;color:var(--ink)}
 /* 탭: 수첩 옆 인덱스 탭 */
@@ -56,8 +57,9 @@ h2{font-size:16px;font-weight:700;display:inline;background:linear-gradient(tran
 /* 메모칸: 줄 공책 */
 .bk textarea{background:var(--sheet) repeating-linear-gradient(transparent 0 25px,var(--rule) 25px 26px);background-attachment:local;line-height:26px;padding:0 6px;border:0;border-bottom:1.5px solid var(--rule);border-radius:0;min-height:52px}
 textarea,input[type=text],input[type=number],input[type=email],input[type=password],select{border:0;border-bottom:1.5px solid var(--pen);border-radius:0;background:transparent;padding:8px 2px}
-/* 매물: 가격은 손글씨, 호가는 메모 쪽지 */
-.price,.area-name{font-family:var(--hand);font-weight:400;font-size:30px}
+/* 매물: 가격은 굵은 고딕 */
+.price,.area-name{font-family:var(--sans);font-weight:800;font-size:22px;letter-spacing:-.02em}
+.auth-card h2{font-family:var(--sans);font-weight:800}
 .facts li{border:0;border-bottom:1.5px solid var(--rule);border-radius:0;padding:2px 4px}
 .facts li.new{border-bottom-color:var(--stamp)}
 .stage{color:var(--accent)}
