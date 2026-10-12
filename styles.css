@@ -162,11 +162,11 @@ a.mini{text-decoration:none;display:inline-block}
 /* 지도 칸 안의 버튼·카카오 지도 조각이 위에 붙어 있는 제목·탭 위로 올라오지 않게 */
 .map{isolation:isolate}
 #rmapBox .kmap{margin-top:0;height:min(400px,58vh)}
-.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;background:#C2187A;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.3);display:block}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;background:#1E2B3A;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.3);display:block}
 .dot[data-status="call"]{background:#2460A7}
 .dot[data-status="visit"]{background:#0B6E5F}
 .dot[data-pick="1"]{width:14px;height:14px;border-color:#1F3A5F;border-width:3px}
-.dot.nb{width:9px;height:9px;background:#EE9BC9;opacity:.95}
+.dot.nb{width:9px;height:9px;background:#8C96A3;opacity:.95}
 /* 방문함: 밝은 초록 바탕에 흰 체크, 크게 / 통화함: 파란 점 (다른 동 곳도 같아요). 구역 경계선 색(초록·파랑·주황·회색)과 헷갈리지 않게 */
 .dot[data-status="visit"],.dot.nb[data-status="visit"]{width:16px;height:16px;background:#22B14C;border:2px solid #fff;box-shadow:0 0 0 1.5px #0E4F22;opacity:1;z-index:2}
 .dot[data-status="visit"]::before{content:"";position:absolute;left:3.5px;top:1px;width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
@@ -222,9 +222,9 @@ input[type=number]{font:inherit;font-size:16px;width:100%;border:1px solid var(-
 .ask-blk{padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
 #home .ask-blk{border-bottom:0;border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
 .zlabel{display:inline-block;font:600 11px/1.2 system-ui,sans-serif;background:rgba(255,255,255,.85);padding:1px 5px;border-radius:4px;white-space:nowrap;pointer-events:none}
-.zlabel.two{display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:2px 6px;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.12);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.zlabel.two b{font-weight:700}
-.zlabel.two small{font:500 10px/1.2 system-ui,sans-serif;color:#3D4744}
+.zlabel.two{display:inline-flex;flex-direction:column;align-items:stretch;padding:0;background:#fff;border-radius:4px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.25);text-align:center}
+.zlabel.two b{font-weight:700;color:#fff;padding:2px 7px}
+.zlabel.two small{font:500 10px/1.2 system-ui,sans-serif;color:#2B3331;padding:2px 7px}
 .zlabel.loose{border:1px dashed currentColor;font-weight:500}
 .zlabel.tap{pointer-events:auto;cursor:pointer}
 .kmap.drawing .zlabel.tap{pointer-events:none}

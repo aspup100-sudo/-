@@ -180,7 +180,8 @@
     return /도심 공공|공공주택/.test(t) ? "도심공공" : /모아타운|가로주택|자율주택|소규모/.test(t) ? "모아타운·소규모" : /재정비촉진|존치/.test(t) ? "재정비촉진"
       : /역세권|장기전세/.test(t) ? "역세권" : /재건축/.test(t) && !/재개발|신속/.test(t) ? "재건축" : "재개발·신통기획";
   }
-  var KIND_COL = { "재개발·신통기획": "#0B6E5F", "재건축": "#B4541A", "모아타운·소규모": "#2460A7", "도심공공": "#7A4FB5", "재정비촉진": "#00838F", "역세권": "#6B7280" };
+  // 공원 초록·중개업소 점(자홍·파랑·초록)과 헷갈리지 않는 색으로 갈래를 나눠요
+  var KIND_COL = { "재개발·신통기획": "#E03131", "재건축": "#7048E8", "모아타운·소규모": "#F08C00", "도심공공": "#0C8599", "재정비촉진": "#A0522D", "역세권": "#495057" };
   function early(k) { return k.every(function (x) { return /추진중|연번|자문|입주자/.test(x[1]); }); } // 아직 초기 단계면 점선
   function ringsOf(p) { // 바깥 테두리(시계 방향)마다 안쪽 구멍을 붙여 카카오 도형 경로로
     var out = [];
@@ -226,7 +227,7 @@
     function label(text, ll, col, loose, sub) {
       var lab = document.createElement("span"); lab.className = "zlabel" + (loose ? " loose" : "") + (sub ? " two" : "");
       if (sub) {
-        var t = document.createElement("b"); t.textContent = text; t.style.color = col; lab.appendChild(t);
+        var t = document.createElement("b"); t.textContent = text; t.style.background = col; lab.appendChild(t);
         var u = document.createElement("small"); u.textContent = sub; lab.appendChild(u);
       } else { lab.textContent = text; lab.style.color = col; }
       var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0, clickable: !!loose }); zoneLabels.push(lo);
@@ -264,7 +265,7 @@
         var my = mine[z.id], kind = realKind(z.k), col = KIND_COL[kind], soft = early(z.k);
         kinds[kind] = col; if (soft) anySoft = true;
         ringsOf(z.p).forEach(function (path) {
-          var poly = new kakao.maps.Polygon({ path: path, strokeWeight: 2, strokeColor: col, strokeOpacity: 0.85, strokeStyle: soft ? "shortdash" : "solid", fillColor: col, fillOpacity: my ? 0.18 : 0.1 });
+          var poly = new kakao.maps.Polygon({ path: path, strokeWeight: 2.5, strokeColor: col, strokeOpacity: 0.95, strokeStyle: soft ? "shortdash" : "solid", fillColor: col, fillOpacity: my ? 0.2 : 0.12 });
           poly.setMap(map);
           kakao.maps.event.addListener(poly, "click", function (e) {
             if (onMapClick) onMapClick(e);
