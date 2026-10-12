@@ -1,0 +1,114 @@
+/* 깔끔한 앱 디자인: notebook.css 위에 얹어요. 연회색 바탕 위 흰 카드, 보라색 강조, 둥근 버튼, Pretendard.
+   되돌리려면 index.html·pick.html에서 이 파일 줄만 지우면 수첩 디자인으로 돌아가요. */
+:root{
+  --bg2:#F4F5F7; --bg3:#ECEEF1; --card:#FFFFFF; --ln:#E6E8EC; --tx:#16181C; --sub:#666D79; --mute:#A0A6B0;
+  --acc:#4434F5; --acc-soft:#EEECFF; --acc-line:#CFCBFF; --ok:#0FA968; --ok-soft:#E3F6EE; --warn:#E5484D; --warn-soft:#FDECEC;
+  --shadow:0 4px 18px rgba(22,24,28,.06);
+  --paper:var(--bg2); --sheet:var(--card); --pen:var(--tx); --pen-soft:var(--sub); --rule:var(--ln); --tab:var(--bg2);
+  --bg:var(--bg2); --surface:var(--card); --ink:var(--tx); --muted:var(--sub); --line:var(--ln);
+  --accent:var(--acc); --accent-soft:var(--acc-soft); --marker:var(--acc-soft); --stamp:var(--warn); --stamp-soft:var(--warn-soft);
+  --first:var(--warn); --first-soft:var(--warn-soft); --call:#2E6BE6; --call-soft:#E8F0FD;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg2:#111215; --bg3:#24272C; --card:#1A1C20; --ln:#2A2D33; --tx:#F1F2F4; --sub:#A3A9B4; --mute:#6E7480;
+  --acc:#7D71FF; --acc-soft:#221F45; --acc-line:#3B3580; --ok:#2BC685; --ok-soft:#14301F; --warn:#F06A6E; --warn-soft:#3A1D1F;
+  --call:#7DA6F5; --call-soft:#1C2A44; --shadow:0 4px 18px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{
+  --bg2:#111215; --bg3:#24272C; --card:#1A1C20; --ln:#2A2D33; --tx:#F1F2F4; --sub:#A3A9B4; --mute:#6E7480;
+  --acc:#7D71FF; --acc-soft:#221F45; --acc-line:#3B3580; --ok:#2BC685; --ok-soft:#14301F; --warn:#F06A6E; --warn-soft:#3A1D1F;
+  --call:#7DA6F5; --call-soft:#1C2A44; --shadow:0 4px 18px rgba(0,0,0,.35)}
+body{background:var(--bg2);color:var(--tx);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+
+/* 머리: 흰 띠, 굵은 제목 */
+header.top{background:var(--card);border-bottom:1px solid var(--ln);padding-block:14px 0;box-shadow:none}
+h1{font-size:24px;font-weight:750;letter-spacing:-.03em}
+.progress{color:var(--sub)}
+.progress b{background:none;color:var(--acc);font-weight:700;padding:0 1px}
+.save{color:var(--mute)}
+/* 탭: 밑줄형 */
+.tabs,.tabs.three{gap:0;margin:4px -16px 0;padding:0 8px}
+.tabs button{border:0;border-bottom:2.5px solid transparent;border-radius:0;background:transparent;color:var(--mute);padding:12px 6px 11px;font-weight:650;font-size:15px;margin:0}
+.tabs button[aria-selected="true"]{background:transparent;color:var(--tx);border-bottom-color:var(--tx);padding-bottom:11px;margin-top:0}
+/* 소제목: 형광펜 대신 굵은 글씨 */
+h2{background:none;padding:0;font-size:18px;font-weight:700;letter-spacing:-.02em}
+.hint{color:var(--sub)}
+
+/* 카드: 흰 바탕, 둥근 모서리, 옅은 그림자 */
+.map,.bk,.lt,.area,.rt-item,details,.ask,.auth-card,.post{background:var(--card);border:1px solid var(--ln);border-radius:16px;box-shadow:var(--shadow)}
+.bk,.lt{padding:16px}
+.bk::before,.lt::before{content:none}
+.bk[data-status="call"],.bk[data-status="visit"]{border-left:1px solid var(--ln)}
+.bk h3,.lt h3{font-size:17px;font-weight:700;letter-spacing:-.02em}
+.grp{border-top:0;padding-top:8px;color:var(--sub);font-size:13.5px;font-weight:650}
+.map{padding:12px}
+.kmap{border-radius:12px}
+
+/* 표시: 기울어진 도장 대신 둥근 태그 */
+.badge,.zchip,.pcat{transform:none;border:0;border-radius:7px;padding:2px 8px;font-size:12.5px;font-weight:600;letter-spacing:0;background:var(--acc-soft);color:var(--acc)}
+.badge.fresh{background:var(--acc-soft);color:var(--acc)}
+.badge.gone{background:var(--bg3);color:var(--sub)}
+.bk[data-status="visit"]::after,.bk[data-status="call"]::after{width:auto;height:auto;border:0;border-radius:7px;transform:none;opacity:1;font:600 12.5px/1 var(--sans);padding:6px 9px;top:14px;right:14px}
+.bk[data-status="visit"]::after{background:var(--ok-soft);color:var(--ok)}
+.bk[data-status="call"]::after{background:var(--call-soft);color:var(--call)}
+.tags{color:var(--warn)}
+
+/* 버튼 */
+.mini,.tg,.rv-save{border:0;border-radius:12px;background:var(--bg2);color:var(--tx);font-weight:600}
+.mini{padding:7px 12px;font-size:13px}
+.tg{padding:11px 4px;font-size:14px}
+.tg.call[aria-pressed="true"]{background:var(--call-soft);color:var(--call)}
+.tg.visit[aria-pressed="true"]{background:var(--ok-soft);color:var(--ok)}
+.tg.pick[aria-pressed="true"]{background:var(--acc-soft);color:var(--acc)}
+.rv-save,.mini.strong,.fab,.totop{background:var(--acc);color:#fff;border:0;border-radius:12px;box-shadow:none}
+.fab{border-radius:999px;padding:12px 20px;box-shadow:0 6px 18px rgba(68,52,245,.3)}
+.totop{border-radius:999px}
+.row a,.lk,.rv-go,.lkbtn{color:var(--acc);text-decoration:none;font-weight:600}
+.lkbtn:hover,.row a:hover{text-decoration:underline}
+/* 칩: 알약 모양 */
+.chip{border:1.5px solid var(--ln);border-radius:999px;background:var(--card);color:var(--tx);padding:7px 14px;font-weight:550}
+.chip[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc);font-weight:650}
+.rv-sum{border:0;background:var(--bg2);border-radius:12px}
+.star-tg{border-radius:7px;border:1.5px solid var(--ln)}
+.star-tg[aria-pressed="true"],.star-tg[data-on]{border-color:#FFB21E;background:#FFF4DA;color:#8A5A00}
+.bk[data-star="1"]{box-shadow:var(--shadow),inset 0 0 0 1.5px #FFB21E}
+
+/* 입력칸: 둥근 회색 상자 */
+textarea,input[type=text],input[type=number],input[type=email],input[type=password],select{border:1.5px solid transparent;border-radius:12px;background:var(--bg2);padding:11px 14px;color:var(--tx)}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--acc);background:var(--card)}
+.bk textarea{background:var(--bg2);border:1.5px solid transparent;border-radius:12px;line-height:1.55;padding:10px 12px;min-height:64px;font-size:14px}
+.bk textarea:focus{background:var(--card);border-color:var(--acc)}
+.mine-memo{background:var(--bg2);border:0;border-radius:12px;line-height:1.6;padding:10px 12px}
+
+/* 숫자·가격 */
+.price,.area-name{font-weight:750;letter-spacing:-.03em}
+.facts li{border:0;border-radius:7px;background:var(--bg2);padding:3px 9px;color:var(--sub)}
+.facts li.new{background:var(--warn-soft);color:var(--warn)}
+.stage{color:var(--acc)}
+
+/* 약도 */
+.gm{stroke:var(--ln);stroke-opacity:1;stroke-width:2;fill:var(--card)}
+.gm[aria-pressed="true"],.gm[aria-pressed="true"]:hover{fill:var(--acc);stroke:var(--card)}
+@media (hover:hover){.gm:hover{fill:var(--acc-soft)}}
+.gm-l.on{fill:#fff;stroke:none}
+.cl[aria-pressed="true"] circle{fill:var(--acc)}
+
+/* 아래 메뉴 */
+.bnav{background:var(--card);border-top:1px solid var(--ln);box-shadow:0 -2px 12px rgba(22,24,28,.04)}
+@media (min-width:560px){.bnav{border-inline:1px solid var(--ln)}}
+.bnav a,.bnav button{color:var(--mute)}
+.bnav [aria-current="page"]{color:var(--tx)}
+.bnav [aria-current="page"] span{background:none;padding:0}
+
+/* 커뮤니티 */
+.post{padding:16px}
+.pcat{background:var(--acc-soft);color:var(--acc)}
+.ptext.full{border-top:1px solid var(--ln)}
+.cm{border-bottom:1px solid var(--ln)}
+
+/* 동선 */
+.rt-n{background:var(--acc);color:#fff}
+.pin{background:var(--acc)}
+.pin.multi{background:var(--acc)}
+.rt-nav{border:1px solid var(--ln);border-radius:16px;box-shadow:0 8px 28px rgba(22,24,28,.14)}
+.rm-go{border-radius:999px;box-shadow:0 6px 18px rgba(68,52,245,.3)}
+.rm-fs{border-radius:999px;background:var(--card);box-shadow:var(--shadow)}

@@ -157,7 +157,7 @@
       var rg = M.region && M.region(); // 중개업소 탭에서 고른 영역도 같이 그려요
       if (rg) { var pg = new kakao.maps.Polygon({ path: rg.poly.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }), strokeWeight: 2, strokeColor: "#B4541A", strokeOpacity: 0.8, fillColor: "#F2A65A", fillOpacity: 0.1 }); pg.setMap(rmap); drawn.push(pg); }
       if (way) line = way.line.map(function (q) { return new kakao.maps.LatLng(q[0], q[1]); }); // 실제 걷는 길 모양
-      var pl = new kakao.maps.Polyline({ path: line, strokeWeight: 4, strokeColor: "#0B6E5F", strokeOpacity: 0.85, strokeStyle: way ? "solid" : "shortdash" }); pl.setMap(rmap); drawn.push(pl);
+      var pl = new kakao.maps.Polyline({ path: line, strokeWeight: 4, strokeColor: "#4434F5", strokeOpacity: 0.8, strokeStyle: way ? "solid" : "shortdash" }); pl.setMap(rmap); drawn.push(pl);
       lastB = b; rmap.relayout(); if (!nav) rmap.setBounds(b, 30, 30, 30, 30);
     }).catch(function () { $("#rmapBox").hidden = true; });
   }
