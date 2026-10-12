@@ -113,4 +113,11 @@ meta = {"src": "서울 열린데이터광장 '서울시 도시계획사업 현�
 for code, items in sorted(by_gu.items()):
     with open(os.path.join(OUT, code + ".json"), "w", encoding="utf-8") as f:
         json.dump(dict(meta, z=items), f, ensure_ascii=False, separators=(",", ":"))
+# 구마다 구역이 걸친 범위(서·남·동·북). 지도를 옮기면 화면에 걸친 구 자료를 더 불러오는 데 써요.
+bbox = {}
+for code, items in sorted(by_gu.items()):
+    xs = [q[0] for it in items for r in it["p"] for q in r]; ys = [q[1] for it in items for r in it["p"] for q in r]
+    bbox[code] = [round(min(xs), 5), round(min(ys), 5), round(max(xs), 5), round(max(ys), 5)]
+with open(os.path.join(OUT, "index.json"), "w", encoding="utf-8") as f:
+    json.dump(bbox, f, separators=(",", ":"))
 print("구역", sum(len(v) for v in by_gu.values()), "곳(구 경계에 걸친 곳은 겹쳐 셈) →", len(by_gu), "개 구")

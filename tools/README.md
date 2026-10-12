@@ -41,3 +41,4 @@ node tools/apply-update.js seoul.json asks.json
 ## 구역 경계 자동 확인 (GitHub Actions)
 - `.github/workflows/zones.yml` 이 매주 월요일 OA-22712 파일 목록을 보고(`tools/fetch-zones.py`), 앱 자료보다 새 기준월 파일이 있으면 받아서 `build-zones.py` 로 다시 만들어 올려요.
 - 손으로 넣은 구역(data/zones/extra.json)은 그대로 두니, 새 도심복합 사업지는 계속 손으로 넣어요.
+- `data/zones/index.json` 은 구마다 구역이 걸친 범위예요. 지도를 옮기면 화면에 걸친 다른 구의 구역을 불러오는 데 써요 (`build-zones.py` 가 함께 만들어요).
