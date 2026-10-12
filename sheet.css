@@ -1,6 +1,6 @@
 /* 지도 탭(동 화면의 중개업소 탭): 지도를 화면 가득 깔고, 중개업소 목록은 아래에서 끌어올리는 시트로 */
-:root{--bnav-h:calc(62px + env(safe-area-inset-bottom,0px));--peek:calc(100vh - var(--bnav-h) - 176px)}
-@supports (height:1dvh){:root{--peek:calc(100dvh - var(--bnav-h) - 176px)}} /* 내렸을 때 시트는 제목과 탭까지만 보여요 */
+:root{--bnav-h:calc(62px + env(safe-area-inset-bottom,0px));--peek:calc(100vh - var(--bnav-h) - 94px)}
+@supports (height:1dvh){:root{--peek:calc(100dvh - var(--bnav-h) - 94px)}} /* 내렸을 때 시트는 손잡이와 동 이름 정도만 보여요 */
 body.mapsheet:not(.tab-brokers) #kmapBox:not(.fs){visibility:hidden;position:fixed;left:-9999px;width:360px}
 body.mapsheet.tab-brokers #kmapBox:not(.fs):not([hidden]){position:fixed;left:0;right:0;top:0;bottom:var(--bnav-h);z-index:0;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;max-width:none;background:var(--bg3,#ECEEF1)}
 body.mapsheet.tab-brokers #kmapBox:not(.fs) .kmap{position:absolute;inset:0;height:auto;border-radius:0;margin:0}
