@@ -38,3 +38,5 @@ body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap .grip{display:
 #kmapBox.fs .me-bar{left:auto;top:auto;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:none;padding:0}
 #rmapBox .me-bar{bottom:64px}
 #rmapBox.fs .me-bar{bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+/* 영역 그리기: 얇은 보라 선 + 흰 둥근 꼭짓점 */
+.vx{width:12px;height:12px;background:#fff;border:2.5px solid #4434F5;border-radius:50%;box-shadow:0 1px 4px rgba(22,24,28,.25)}
