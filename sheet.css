@@ -46,3 +46,8 @@ html.map-draw body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar{position:fixed
 html.map-draw body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar .hint{flex-basis:100%;order:-1;background:none;box-shadow:none;padding:0 2px;max-width:none;font-size:13.5px}
 html.map-draw body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar .mini{font-size:15px;padding:10px 16px}
 html.map-draw .kmap.drawing{outline:0}
+/* 동선 지도: 안내 시작은 지도 위에 띄우지 않고 지도 바로 아래 넓은 버튼으로 둬요 */
+#rmapBox .rm-go{position:static;transform:none;display:block;width:100%;margin:8px 0 0;padding:13px 16px;font-size:16px;font-weight:700;border-radius:14px;box-shadow:none}
+#rmapBox.fs .rm-go{flex:0 0 auto;margin:10px 4px 4px;width:auto}
+#rmapBox .me-bar{bottom:76px}
+#rmapBox.fs .me-bar{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
