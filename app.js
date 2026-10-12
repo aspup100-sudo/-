@@ -206,6 +206,78 @@
     return o;
   }
   function won(v) { var e = Math.floor(v / 10000), m = v % 10000; return (e ? e + "억" : "") + (m ? (e ? " " : "") + m.toLocaleString("ko-KR") + "만" : ""); }
+  // 실거래 차트: 가로는 계약일, 세로는 매매가 또는 대지 평당가. 거래 하나가 점 하나이고, 선은 갈래별 3개월 가운데값이에요.
+  var DEAL_SER = [
+    { k: "다세대·연립", t: /연립|다세대/, c: "#2a78d6", c2: "#3987e5" },
+    { k: "단독·다가구", t: /단독|다가구/, c: "#eb6834", c2: "#d95926" },
+    { k: "아파트", t: /아파트/, c: "#1baf7a", c2: "#199e70" }
+  ];
+  function dealChart(rows, meta) {
+    var box = el("div", "dchart"), NS = "http://www.w3.org/2000/svg", mode = "price", dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
+    var tabs = el("div", "dchart-tabs"), cap = el("p", "dchart-cap", "점을 누르면 그 거래가 나와요."), leg = el("div", "dchart-leg");
+    [["price", "매매가"], ["land", "대지 평당가"]].forEach(function (m) {
+      var b = el("button", "dchart-tab", m[1]); b.type = "button"; b.dataset.m = m[0];
+      b.addEventListener("click", function () { mode = m[0]; draw(); }); tabs.appendChild(b);
+    });
+    var svgWrap = el("div", "dchart-plot");
+    box.appendChild(tabs); box.appendChild(svgWrap); box.appendChild(leg); box.appendChild(cap);
+    function day(r) { return Date.UTC(+r[0].slice(0, 4), +r[0].slice(4, 6) - 1, +r[0].slice(6, 8)); }
+    function val(r) { return mode === "price" ? r[2] : (r[4] ? r[2] / (r[4] / 3.3058) : null); }
+    function nice(max) { var st = [1, 2, 2.5, 5, 10], p = Math.pow(10, Math.floor(Math.log10(max / 4))), i = 0; while (st[i] * p * 4 < max) i++; return st[i] * p; }
+    function label(v) { return mode === "price" ? (v >= 10000 ? (v / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + "억" : v.toLocaleString("ko-KR") + "만") : (v >= 10000 ? (v / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + "억" : Math.round(v).toLocaleString("ko-KR") + "만"); }
+    function node(t, a) { var e = document.createElementNS(NS, t); for (var k in a) e.setAttribute(k, a[k]); return e; }
+    function draw() {
+      tabs.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.m === mode)); });
+      var W = Math.max(280, svgWrap.clientWidth || box.clientWidth || 340), H = 200, L = 46, R = 10, T = 10, Bm = 26, pts = [];
+      rows.forEach(function (c) { var v = val(c.r); if (v == null) return; var si = -1; DEAL_SER.forEach(function (s, i) { if (si < 0 && s.t.test(c.r[1])) si = i; }); if (si >= 0) pts.push({ c: c, x: day(c.r), y: v, s: si }); });
+      svgWrap.textContent = ""; leg.textContent = "";
+      if (pts.length < 2) { svgWrap.appendChild(el("p", "hint", mode === "land" ? "대지 면적이 있는 거래가 적어서 차트를 그리지 못했어요." : "거래가 적어서 차트를 그리지 못했어요.")); return; }
+      var x0 = Date.UTC(new Date(Math.min.apply(null, pts.map(function (p) { return p.x; }))).getUTCFullYear(), 0, 1), x1 = Math.max.apply(null, pts.map(function (p) { return p.x; }));
+      var ys = pts.map(function (p) { return p.y; }).sort(function (a, b) { return a - b; });
+      var top = ys[Math.min(ys.length - 1, Math.floor(ys.length * 0.98))] * 1.08, step = nice(top), ymax = Math.ceil(top / step) * step;
+      var sx = function (x) { return L + (x - x0) / Math.max(1, x1 - x0) * (W - L - R); }, sy = function (y) { return T + (1 - Math.min(y, ymax) / ymax) * (H - T - Bm); };
+      var svg = node("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": "이 구역 실거래 " + (mode === "price" ? "매매가" : "대지 평당가") + " 차트" });
+      for (var g = 0; g <= ymax + 1e-9; g += step) {
+        svg.appendChild(node("line", { x1: L, x2: W - R, y1: sy(g), y2: sy(g), class: "dc-grid" }));
+        var tx = node("text", { x: L - 6, y: sy(g) + 4, class: "dc-ax", "text-anchor": "end" }); tx.textContent = g ? label(g) : "0"; svg.appendChild(tx);
+      }
+      for (var yr = new Date(x0).getUTCFullYear(); Date.UTC(yr, 0, 1) <= x1; yr++) {
+        var xx = sx(Date.UTC(yr, 0, 1)); if (xx < L - 1) continue;
+        svg.appendChild(node("line", { x1: xx, x2: xx, y1: T, y2: H - Bm, class: "dc-grid" }));
+        var t2 = node("text", { x: xx + 3, y: H - 8, class: "dc-ax" }); t2.textContent = yr + "년"; svg.appendChild(t2);
+      }
+      var lines = [];
+      DEAL_SER.forEach(function (s, si) {
+        var mine = pts.filter(function (p) { return p.s === si; }); if (!mine.length) return;
+        var col = dark ? s.c2 : s.c;
+        // 3개월 가운데값을 이은 계단선
+        var byQ = {}; mine.forEach(function (p) { var d = new Date(p.x), q = d.getUTCFullYear() * 4 + Math.floor(d.getUTCMonth() / 3); (byQ[q] = byQ[q] || []).push(p.y); });
+        var qs = Object.keys(byQ).map(Number).sort(function (a, b) { return a - b; }), dd = "";
+        qs.forEach(function (q, i) {
+          var v = byQ[q].sort(function (a, b) { return a - b; }), m = v[Math.floor(v.length / 2)];
+          var xa = sx(Math.max(x0, Date.UTC(Math.floor(q / 4), (q % 4) * 3, 1))), xb = sx(Math.min(x1, Date.UTC(Math.floor(q / 4), (q % 4) * 3 + 3, 1)));
+          dd += (i ? "L" : "M") + xa.toFixed(1) + "," + sy(m).toFixed(1) + "L" + xb.toFixed(1) + "," + sy(m).toFixed(1);
+        });
+        if (qs.length > 1) lines.push(node("path", { d: dd, fill: "none", stroke: col, "stroke-width": 2.5, "stroke-linejoin": "round", class: "dc-line" }));
+        mine.forEach(function (p) {
+          var dot = node("circle", { cx: sx(p.x).toFixed(1), cy: sy(p.y).toFixed(1), r: 4, fill: col, class: "dc-dot" });
+          var r = p.c.r, txt = r[0].slice(0, 4) + "." + r[0].slice(4, 6) + "." + r[0].slice(6, 8) + " · " + r[1] + " · " + won(r[2]) + (r[4] ? " · 대지 " + (r[4] / 3.3058).toFixed(1) + "평 (평당 " + won(Math.round(r[2] / (r[4] / 3.3058))) + ")" : "") + " · " + p.c.dn + " " + r[7] + (r[8] ? " " + r[8] : "");
+          var tt = node("title", {}); tt.textContent = txt; dot.appendChild(tt);
+          dot.addEventListener("click", function () { svg.querySelectorAll(".dc-dot.on").forEach(function (o) { o.classList.remove("on"); }); dot.classList.add("on"); cap.textContent = txt; });
+          svg.appendChild(dot);
+        });
+        var li = el("span", "zl"); var ic = el("i"); ic.style.background = col; li.appendChild(ic); li.appendChild(document.createTextNode(s.k + " " + mine.length + "건")); leg.appendChild(li);
+      });
+      lines.forEach(function (l) { svg.appendChild(l); });
+      svgWrap.appendChild(svg);
+      if (ys[ys.length - 1] > ymax) leg.appendChild(el("span", "dchart-note", "아주 비싼 몇 건은 맨 위에 붙여 그렸어요."));
+      leg.appendChild(el("span", "dchart-note", "선은 3개월마다의 가운데값이에요." + (mode === "land" ? " 대지 평당가는 대지 면적이 있는 거래만이에요." : "")));
+    }
+    draw();
+    // 화면에 붙은 뒤 실제 너비로 다시 그려서 글씨가 작아지지 않게 해요
+    requestAnimationFrame(function () { if (svgWrap.clientWidth) draw(); });
+    return box;
+  }
   function showDeals(z, pane) {
     var M = window.CS_MAP, msg = el("p", "hint", "실거래를 불러오는 중이에요."); pane.appendChild(msg);
     var byGu = {}; (z.d || []).forEach(function (k) { var p = k.split(":"); (byGu[p[0]] = byGu[p[0]] || []).push(p[1]); });
@@ -229,6 +301,7 @@
         rows.sort(function (a, b) { return b.r[0] < a.r[0] ? -1 : 1; });
         var dd = (meta.date || "").split("-");
         msg.textContent = rows.length ? "이 구역 안 실거래 " + rows.length + "건이에요 (" + meta.from + "년부터 " + (dd.length === 3 ? dd[0] + "년 " + (+dd[1]) + "월 " + (+dd[2]) + "일 계약" : "") + "까지)." + (hidden ? " 지번이 가려진 " + hidden + "건은 위치를 몰라 뺐어요." : "") : "이 구역 안에서 확인된 실거래가 없어요." + (hidden ? " 지번이 가려진 " + hidden + "건은 위치를 몰라 뺐어요." : "");
+        if (rows.length >= 2) pane.appendChild(dealChart(rows, meta));
         var ul = el("ul", "deal-list");
         rows.forEach(function (c) {
           var r = c.r, li = el("li", "deal");
