@@ -40,3 +40,9 @@ body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap .grip{display:
 #rmapBox.fs .me-bar{bottom:calc(70px + env(safe-area-inset-bottom,0px))}
 /* 영역 그리기: 얇은 보라 선 + 흰 둥근 꼭짓점 */
 .vx{width:12px;height:12px;background:#fff;border:2.5px solid #4434F5;border-radius:50%;box-shadow:0 1px 4px rgba(22,24,28,.25)}
+/* 지도 탭에서 영역 그리기: 시트와 아래 메뉴를 숨기고, 그 자리에 하나 지우기·완료·취소 줄 */
+html.map-draw .wrap,html.map-draw .bnav,html.map-draw .fab,html.map-draw .totop,html.map-draw body.mapsheet #kmapBox .me-bar,html.map-draw body.mapsheet #kmapBox #quietBtn{display:none!important}
+html.map-draw body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar{position:fixed;left:0;right:0;top:auto;bottom:0;z-index:30;min-height:var(--bnav-h);display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:var(--card,#fff);border-radius:18px 18px 0 0;box-shadow:0 -4px 16px rgba(22,24,28,.12)}
+html.map-draw body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar .hint{flex-basis:100%;order:-1;background:none;box-shadow:none;padding:0 2px;max-width:none;font-size:13.5px}
+html.map-draw body.mapsheet.tab-brokers #kmapBox:not(.fs) .rg-bar .mini{font-size:15px;padding:10px 16px}
+html.map-draw .kmap.drawing{outline:0}

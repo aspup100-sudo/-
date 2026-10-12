@@ -299,7 +299,9 @@
       box.classList.toggle("drawing", drawing);
       // 그리는 동안에는 지도를 화면 가득 키우고, 끝나면 원래 자리로 돌려요. 보던 곳은 그대로 둬요.
       var wrap = $("#kmapBox");
-      if (wrap.classList.contains("fs") !== drawing) {
+      // 지도 탭(시트 화면)은 지도가 이미 화면 가득이라 크기를 바꾸지 않고 시트만 내려 둬요 (지도가 반쪽만 그려지는 문제 방지).
+      if (document.body.classList.contains("mapsheet")) document.documentElement.classList.toggle("map-draw", drawing);
+      else if (wrap.classList.contains("fs") !== drawing) {
         var c = map.getCenter();
         wrap.classList.toggle("fs", drawing); document.documentElement.classList.toggle("map-fs", drawing);
         map.relayout(); map.setCenter(c);
