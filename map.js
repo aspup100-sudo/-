@@ -55,10 +55,12 @@
     }, { enableHighAccuracy: true, maximumAge: 5000 });
   }
   // 지도와 버튼 묶기: box 안에 [내 위치 보기] [×] 버튼을 넣어요
-  function liveAttach(map, box) {
+  // home이 있으면(동 지도) 내 위치가 켜진 상태에서 한 번 더 누를 때 위치를 끄고 원래 동 화면으로 돌아가요.
+  function liveAttach(map, box, home) {
     live.maps.push({ map: map });
     var w = document.createElement("div"); w.className = "me-bar";
-    var b = document.createElement("button"); b.type = "button"; b.className = "lkbtn me-btn"; b.addEventListener("click", liveToggle);
+    var b = document.createElement("button"); b.type = "button"; b.className = "lkbtn me-btn";
+    b.addEventListener("click", function () { if (home && live.watch != null && live.ll) { liveOff(); home(); } else liveToggle(); });
     var x = document.createElement("button"); x.type = "button"; x.className = "lkbtn me-off"; x.textContent = "끄기"; x.setAttribute("aria-label", "내 위치 끄기"); x.addEventListener("click", liveOff);
     w.appendChild(b); w.appendChild(x); box.parentNode.insertBefore(w, box);
     live.btns.push(b);
@@ -124,7 +126,7 @@
     }).then(saveCache);
   }
 
-  var map = null, dots = {}, lastSig = "";
+  var map = null, dots = {}, lastSig = "", lastBounds = null;
 
   // 영역으로 고르기: 지도를 눌러 꼭짓점을 찍으면 그 안의 중개업소만 목록에 남아요. 2곳이면 네모, 3곳부터는 찍은 모양.
   var wired = false, drawing = false, pts = [], shape = null, marks = [], active = false;
@@ -347,7 +349,7 @@
     if (!map) {
       box.hidden = false; $("#svgMap").hidden = true; $("#streets").hidden = false;
       map = new kakao.maps.Map($("#kmap"), { center: new kakao.maps.LatLng(37.5665, 126.978), level: 5 });
-      liveAttach(map, $("#kmap"));
+      liveAttach(map, $("#kmap"), function () { if (lastBounds) { map.relayout(); map.setBounds(lastBounds, 24, 24, 24, 24); } });
       if (!document.body.classList.contains("mapsheet")) { try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {} } // 지도 탭(전체 화면)은 두 손가락으로 확대해요
       wireQuiet(kakao);
       // 지도를 옮기거나 키우고 멈추면 화면에 걸친 다른 동 중개업소를 불러와요.
@@ -382,7 +384,7 @@
     });
     var s = sig.join(",");
     // 영역을 그리는 중이거나 영역으로 보는 중에는 지도를 다시 맞추지 않아요 (그린 테두리가 그대로 보이게).
-    if (shown && s !== lastSig && !drawing && $("#kmap").offsetWidth) { lastSig = s; if (!active) { map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); } }
+    if (shown && s !== lastSig && !drawing && $("#kmap").offsetWidth) { lastSig = s; if (!active) { lastBounds = bounds; map.relayout(); map.setBounds(bounds, 24, 24, 24, 24); } }
     if (!wired) { wired = true; wireRegion(kakao); drawZones(kakao); }
     drawNb(kakao);
     var miss = A.B.filter(function (b) { return !cache.p[b[0]]; }).length;
