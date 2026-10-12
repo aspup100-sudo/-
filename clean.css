@@ -112,3 +112,11 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:var(--acc);bac
 .rt-nav{border:1px solid var(--ln);border-radius:16px;box-shadow:0 8px 28px rgba(22,24,28,.14)}
 .rm-go{border-radius:999px;box-shadow:0 6px 18px rgba(68,52,245,.3)}
 .rm-fs{border-radius:999px;background:var(--card);box-shadow:var(--shadow)}
+/* 동 약도: 중개업소가 많은 동일수록 진한 보라, 이름 아래에 곳 수 */
+.dongmap .gm:not(.none){fill:color-mix(in srgb,var(--acc) calc(var(--k,0) * 38%),var(--card))}
+.dongmap .gm[aria-pressed="true"]{fill:var(--acc)}
+.dm-n{fill:var(--sub);font-weight:600}
+.dm-n.on{fill:#fff}
+.dong-more{background:transparent;border:0;box-shadow:none;padding:0}
+.dong-more summary{color:var(--acc);font-size:14px;font-weight:600;padding:6px 0}
+.dong-more[open] summary{margin-bottom:8px}
