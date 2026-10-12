@@ -230,7 +230,7 @@
         var t = document.createElement("b"); t.textContent = text; t.style.background = col; lab.appendChild(t);
         var u = document.createElement("small"); u.textContent = sub; lab.appendChild(u);
       } else { lab.textContent = text; lab.style.color = col; }
-      var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0, clickable: !!loose }); zoneLabels.push(lo);
+      var lo = new kakao.maps.CustomOverlay({ position: ll, content: lab, xAnchor: 0.5, yAnchor: 0.5, zIndex: 0, clickable: true }); zoneLabels.push(lo);
       if (labelsOn) lo.setMap(map);
       return lab;
     }
@@ -269,10 +269,15 @@
           poly.setMap(map);
           kakao.maps.event.addListener(poly, "click", function (e) {
             if (onMapClick) onMapClick(e);
-            showTip(e, my ? my.name : z.n, z.k.map(function (x) { return x[0] + " · " + x[1]; }).concat(z.m2 ? ["면적 " + z.m2.toLocaleString("ko-KR") + "㎡"] : []));
+            if (drawing) return;
+            if (A.openZone) { tipOv.setMap(null); open(); }
+            else showTip(e, my ? my.name : z.n, z.k.map(function (x) { return x[0] + " · " + x[1]; }).concat(z.m2 ? ["면적 " + z.m2.toLocaleString("ko-KR") + "㎡"] : []));
           });
         });
-        label(my ? (my.short || my.name) : zoneTitle(z), new kakao.maps.LatLng(z.c[1], z.c[0]), col, false, zoneStep(z));
+        var title = my ? (my.short || my.name) : zoneTitle(z);
+        function open() { A.openZone(z, { title: title, kind: kind, col: col }); }
+        var lab = label(title, new kakao.maps.LatLng(z.c[1], z.c[0]), col, false, zoneStep(z));
+        if (A.openZone) { lab.classList.add("tap"); lab.addEventListener("click", function (e) { e.stopPropagation(); if (!drawing) open(); }); }
       });
     }
     function zfile(g) { return fetch("./data/zones/" + g + ".json").then(function (r) { if (!r.ok) throw r; return r.json(); }).catch(function () { return null; }); }

@@ -320,6 +320,31 @@
       });
     });
   }
+  // 지도에서 구역을 누르면 여는 구역 창 (재개발닷컴처럼 넓은 화면은 왼쪽, 휴대폰은 아래에서 올라와요)
+  var zpanel = null;
+  function openZone(z, o) {
+    o = o || {};
+    if (!zpanel) {
+      zpanel = el("aside", "zpanel"); zpanel.setAttribute("aria-label", "구역 정보");
+      document.body.appendChild(zpanel);
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeZone(); });
+    }
+    zpanel.textContent = "";
+    var head = el("div", "zp-head"), x = el("button", "zp-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "구역 창 닫기"); x.addEventListener("click", closeZone);
+    var tt = el("h3", null, o.title || z.n); head.appendChild(tt); head.appendChild(x); zpanel.appendChild(head);
+    if (o.kind) { var ch = el("span", "zp-chip", o.kind); if (o.col) { ch.style.background = o.col; } zpanel.appendChild(ch); }
+    if (o.title && o.title !== z.n) zpanel.appendChild(el("p", "zp-full", z.n));
+    z.k.forEach(function (k) { zpanel.appendChild(el("p", "stage", k[0] + " · " + k[1])); });
+    var facts = [];
+    if (z.m2) facts.push("면적 " + z.m2.toLocaleString("ko-KR") + "㎡ (약 " + Math.round(z.m2 / 3.3058).toLocaleString("ko-KR") + "평)");
+    if (z.d && z.d.length) facts.push("걸친 동: " + z.d.map(function (k) { return k.split(":")[1]; }).join(", "));
+    if (facts.length) { var ul = el("ul", "facts"); facts.forEach(function (f) { ul.appendChild(el("li", null, f)); }); zpanel.appendChild(ul); }
+    zpanel.appendChild(el("h4", "zp-sub", "실거래"));
+    var pane = el("div", "deals"); zpanel.appendChild(pane);
+    if (z.p && z.d) showDeals(z, pane); else pane.appendChild(el("p", "hint", "경계 자료가 없어서 구역 안 거래를 가르지 못했어요."));
+    zpanel.scrollTop = 0; zpanel.hidden = false; document.body.classList.add("zp-open");
+  }
+  function closeZone() { if (zpanel) { zpanel.hidden = true; document.body.classList.remove("zp-open"); } }
   function when(iso) {
     var d = new Date(iso); if (isNaN(d)) return "";
     var p = function (n) { return (n < 10 ? "0" : "") + n; };
@@ -576,7 +601,7 @@
 
   // 리뷰(reviews.js)·지도(map.js)·동선(route.js)이 쓰는 연결 고리
   window.CS_APP = {
-    area: AREA, B: B, cards: cards, el: el, when: when, $: $,
+    area: AREA, B: B, cards: cards, el: el, when: when, $: $, openZone: openZone, closeZone: closeZone,
     name: function () { return me; },
     needName: function (then) {
       var AU = window.CS_AUTH;

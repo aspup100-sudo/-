@@ -380,3 +380,15 @@ body.fs-lock{overflow:hidden}
 #rmapBox.fs .rt-nav{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
 #rmapBox .kmap{position:relative;z-index:0} /* 지도 안 표시가 안내 칸 위로 올라오지 않게 */
 .pin.multi{background:#0B6E5F;padding:0 8px;white-space:nowrap}
+
+/* 지도에서 구역을 누르면 뜨는 구역 창: 넓은 화면은 왼쪽, 휴대폰은 아래에서 */
+.zpanel{position:fixed;z-index:45;left:0;right:0;bottom:var(--bnav-h,0px);max-height:72vh;overflow:auto;background:var(--surface);color:var(--ink);border-radius:18px 18px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.18);padding:14px 16px 18px;-webkit-overflow-scrolling:touch}
+.zpanel[hidden]{display:none}
+@media (min-width:900px){.zpanel{left:0;right:auto;top:0;width:400px;max-height:none;border-radius:0 14px 14px 0;box-shadow:6px 0 24px rgba(0,0,0,.15)}}
+.zp-head{display:flex;align-items:flex-start;gap:8px}
+.zp-head h3{margin:0;font-size:18px;flex:1}
+.zp-x{border:0;background:none;font-size:18px;line-height:1;padding:4px 6px;color:var(--muted);cursor:pointer}
+.zp-chip{display:inline-block;margin:6px 0 2px;padding:2px 8px;border-radius:4px;color:#fff;font-size:12px;font-weight:700}
+.zp-full{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.zp-sub{margin:14px 0 4px;font-size:15px}
+.zpanel .stage{margin:4px 0 0}
