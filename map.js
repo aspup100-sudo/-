@@ -348,7 +348,7 @@
       box.hidden = false; $("#svgMap").hidden = true; $("#streets").hidden = false;
       map = new kakao.maps.Map($("#kmap"), { center: new kakao.maps.LatLng(37.5665, 126.978), level: 5 });
       liveAttach(map, $("#kmap"));
-      try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {}
+      if (!document.body.classList.contains("mapsheet")) { try { map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); } catch (e) {} } // 지도 탭(전체 화면)은 두 손가락으로 확대해요
       wireQuiet(kakao);
       // 지도를 옮기거나 키우고 멈추면 화면에 걸친 다른 동 중개업소를 불러와요.
       kakao.maps.event.addListener(map, "idle", function () { clearTimeout(viewTimer); viewTimer = setTimeout(function () { if ($("#kmap").offsetWidth) loadView(kakao); }, 400); });
