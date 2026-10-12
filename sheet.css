@@ -53,3 +53,9 @@ html.map-draw .kmap.drawing{outline:0}
 #rmapBox.fs .me-bar{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
 /* 길 안내 중에는 아래 안내 칸이 가리니 내 위치 버튼을 오른쪽 위(닫기 아래)로 옮겨요 */
 #rmapBox.nav-on .me-bar{top:calc(64px + env(safe-area-inset-top,0px));bottom:auto;right:14px}
+/* 지도 탭에서 구역 창이 열리면 중개업소 목록(시트)은 잠시 숨겨 겹치지 않게 해요. 구역 창을 닫으면 다시 보여요 */
+@media (max-width:899px){
+  body.mapsheet.tab-brokers.zp-open .wrap{visibility:hidden}
+  body.mapsheet.zp-open .zpanel{border-radius:20px 20px 0 0;box-shadow:0 -4px 20px rgba(22,24,28,.16);padding-top:22px}
+  body.mapsheet.zp-open .zpanel::before{content:"";position:absolute;top:8px;left:50%;width:40px;height:5px;margin-left:-20px;border-radius:3px;background:var(--ln,#e5e7eb)}
+}
