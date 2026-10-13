@@ -120,8 +120,9 @@ html, body { margin:0; height:100%; background:var(--night); color:var(--paper);
 
 #hudSpeed { position:absolute; left:150px; bottom:20px; font:700 22px var(--ui); color:#fff; -webkit-text-stroke:1px #000; paint-order:stroke; text-shadow:0 2px 0 #000; }
 .touchOn #hudSpeed { left:auto; right:120px; bottom:140px; }
-.propCard { position:fixed; top:250px; right:16px; width:min(320px, calc(100% - 32px)); background:#fff; color:#14213a; border-top:6px solid var(--navy); border-radius:8px; padding:12px 14px; z-index:25; transform:translateX(calc(100% + 30px)); transition:transform .25s ease-out; box-shadow:0 8px 24px rgba(0,0,0,.4); pointer-events:auto; overflow:hidden; }
+.propCard { position:fixed; top:250px; right:16px; width:min(320px, calc(100% - 32px)); background:#fff; color:#14213a; border-top:6px solid var(--navy); border-radius:8px; padding:12px 14px; z-index:25; transform:translateX(calc(100% + 30px)); transition:transform .25s ease-out; box-shadow:0 8px 24px rgba(0,0,0,.4); pointer-events:auto; overflow-x:hidden; overflow-y:auto; max-height:calc(100vh - 250px - 24px); overscroll-behavior:contain; }
 .propCard.in { transform:none; }
+@media (max-height:720px) { .propCard { top:12px; max-height:calc(100vh - 36px); } }
 .propCard canvas { width:100%; height:auto; aspect-ratio:3/2; image-rendering:pixelated; border-radius:4px; display:block; }
 .propCard .over { position:absolute; top:28px; right:-34px; transform:rotate(35deg); background:#8a8f96; color:#fff; padding:3px 40px; font-size:12px; font-weight:700; }
 .propCard .pcNo { margin-top:8px; font-size:12px; color:var(--blue); font-weight:700; }
@@ -1203,6 +1204,9 @@ Object.assign(FEEL, {
   npcShoveDecay: 4,       // 튕긴 NPC 차가 제자리로 돌아오는 속도
   npcYieldWait: 4,        // NPC끼리 교차로에서 서로 양보하다 막히면 이 시간(초) 뒤 그냥 지나감
   bumpSpeed: 25,          // 이 속도 이상이면 '툭' 접촉음, 70 이상이면 쾅(수리비)
+  hitMin: 30000, hitMax: 100000, // 걷다가 차에 치였을 때 치료비(원)
+  hitKnock: 22,           // 치였을 때 튕겨 나가는 거리(px)
+  hitSpeed: 15,           // 이 속도 미만으로 닿으면 치인 것으로 치지 않음
   walkerFleeDist: 52,     // 행인이 차를 피해 물러나는 거리(px)
   decorWalkers: 16,       // 구역당 행인 수
   cashTickEvery: 0.07,    // 현금 숫자가 돌 때 틱 소리 간격(초)
@@ -2021,7 +2025,20 @@ function trafficCarPos(car) {
   const off = car.road.oneway ? (car.lane - 0.5) * laneW - car.road.width * TILE / 2 : (car.lane - 0.5) * laneW * car.dirn; // 우측통행: 진행 방향 오른쪽
   return { x: p.x - p.uy * off + (car.jx || 0), y: p.y + p.ux * off + (car.jy || 0), a: Math.atan2(p.uy, p.ux) + (car.dirn < 0 ? Math.PI : 0) };
 }
+function hitPlayer(car, q) {
+  const p = Game.player; if ((p.hurtCd || 0) > 0) return;
+  p.hurtCd = 1.5; p.hurt = 0.6;
+  // 차 진행 방향 + 차에서 먼 쪽으로 튕김
+  let nx = p.x - q.x, ny = p.y - q.y; const d = Math.hypot(nx, ny) || 1; nx = nx / d * 0.6 + Math.cos(q.a) * 0.8; ny = ny / d * 0.6 + Math.sin(q.a) * 0.8;
+  const L = Math.hypot(nx, ny) || 1; p.x += nx / L * FEEL.hitKnock; p.y += ny / L * FEEL.hitKnock; p.vx = p.vy = 0; p.push = 0.35;
+  shake(7, 0.35); Sound.play('crash'); Game.hitstop = 0.06;
+  if (!REDUCED_MOTION) for (let i = 0; i < 6; i++) Particles.push({ x: p.x, y: p.y - 8, vx: (Math.random() - 0.5) * 120, vy: -40 - Math.random() * 70, g: 220, life: 0.5, max: 0.5, col: 'rgba(255,230,120,', r: 1.5 });
+  const fee = Math.round((FEEL.hitMin + Math.random() * (FEEL.hitMax - FEEL.hitMin)) / 10000) * 10000;
+  State.cash -= fee; HUD.setCash(State.cash); Toast.show(`차에 치였다! 치료비 ${fmtWon(fee)}`);
+  car.v = Math.min(car.v, 20); car.angryCd = 3; setTimeout(() => Sound.play('horn'), 300);
+}
 function updateTraffic(dt, z) {
+  const p0 = Game.player; if (p0) { p0.hurtCd = Math.max(0, (p0.hurtCd || 0) - dt); p0.hurt = Math.max(0, (p0.hurt || 0) - dt); }
   const P = Game.traffic.map(trafficCarPos);
   Game.traffic.forEach((car, ci) => {
     const r = car.road; let target = car.vmax;
@@ -2042,7 +2059,9 @@ function updateTraffic(dt, z) {
       // 다른 도로·차선의 차가 바로 앞에 있으면(교차로) 멈춰서 양보. 서로 마주 서서 영영 막히면 잠시 뒤 지나감
       const q = P[oi]; const dx = q.x - me.x, dy = q.y - me.y; if (Math.abs(dx) + Math.abs(dy) > 90) return;
       const fwd = dx * Math.cos(me.a) + dy * Math.sin(me.a), side = Math.abs(-dx * Math.sin(me.a) + dy * Math.cos(me.a));
-      if (fwd > 0 && fwd < car.len / 2 + o.len / 2 + 14 && side < (car.wid + o.wid) / 2 + 2 && (car.waitT || 0) < FEEL.npcYieldWait) { target = 0; waiting = true; }
+      // 상대 차가 비스듬히(교차로) 있으면 길이가 옆으로 삐져나오므로, 상대의 앞·옆 폭을 내 축으로 투영해서 본다
+      const ca = Math.abs(Math.cos(q.a - me.a)), sa = Math.abs(Math.sin(q.a - me.a)); const oAhead = ca * o.len / 2 + sa * o.wid / 2, oSide = ca * o.wid / 2 + sa * o.len / 2;
+      if (fwd > 0 && fwd < car.len / 2 + oAhead + 14 && side < car.wid / 2 + oSide + 2 && (car.waitT || 0) < FEEL.npcYieldWait) { target = 0; waiting = true; }
     });
     car.waitT = waiting ? (car.waitT || 0) + dt : 0;
     let blockedByMe = false;
@@ -2053,6 +2072,8 @@ function updateTraffic(dt, z) {
     if (!Game.driving) { const p = Game.player; const dx = p.x - me.x, dy = p.y - me.y; const fwd = dx * Math.cos(me.a) + dy * Math.sin(me.a), side = Math.abs(-dx * Math.sin(me.a) + dy * Math.cos(me.a)); if (fwd > 0 && fwd < 40 && side < 10) target = 0; }
     car.v += Math.max(-300 * dt, Math.min(120 * dt, target - car.v));
     car.s += car.v * car.dirn * dt;
+    // 걷는 중에 달리는 차에 닿으면 치임
+    if (!Game.driving && car.v > FEEL.hitSpeed) { const p = Game.player, q2 = trafficCarPos(car); if (pointInCar(p.x, p.y, q2.x, q2.y, q2.a, car.len / 2 + 3, car.wid / 2 + 3)) hitPlayer(car, q2); }
     if (car.s > r.len + 30) car.s = -30; if (car.s < -30) car.s = r.len + 30;
   });
 }
