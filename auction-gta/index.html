@@ -4250,7 +4250,7 @@ function escapeHtml(s) { return String(s || '').replace(/[&<>"]/g, ch => ({ '&':
   // 홈 화면 설치(PWA): 웹으로 열었을 때만. 파일로 열거나 아티팩트 안이면 조용히 건너뜀.
   try {
     let deferred = null;
-    addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $('btnInstall').hidden = false; });
+    addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $('btnInstall').hidden = false; $('btnInstall').textContent = document.body.classList.contains('touchOn') ? '홈 화면에 설치' : '바탕화면에 앱으로 설치'; });
     $('btnInstall').onclick = () => { if (!deferred) return; deferred.prompt(); deferred = null; $('btnInstall').hidden = true; };
     const standalone = (matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
     if (/^https?:$/.test(location.protocol) && /iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone) $('iosHint').hidden = false;
