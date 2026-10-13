@@ -1184,14 +1184,16 @@ const Settings = Object.assign({ sfx: 1, bgm: 1, muted: false, shake: !REDUCED_M
 function saveSettings() { Store.set('settings', Settings); }
 Object.assign(FEEL, {
   // 운전 (GTA 초기작 느낌)
-  carMaxSpeed: 270,       // px/s → HUD에는 80km/h로 표시
+  carMaxSpeed: 230,       // px/s → HUD에는 80km/h로 표시 (270→230: 키보드로 다루기 쉽게)
   carShownMaxKmh: 80,
   carAccel: 190,          // px/s²
   carBrake: 420,
   carReverseMax: 90,
-  carDrag: 0.6,           // 손 떼면 감속 비율/초
-  carTurn: 2.6,           // rad/s (최고속 기준, 속도 비례)
-  carGrip: 9,             // 높을수록 미끄러짐 적음
+  carDrag: 1.1,           // 손 떼면 감속 비율/초 (0.6→1.1: 가속키를 떼면 금방 느려짐)
+  carTurn: 3.2,           // rad/s (최고속 기준, 속도 비례) (2.6→3.2)
+  carSteerFullAt: 70,     // 이 속도(px/s)부터 핸들이 100% 먹음 (120→70: 저속에서도 잘 꺾임)
+  carRoadAssist: 1.6,     // 핸들을 안 잡으면 도로 방향으로 저절로 맞춰 주는 세기(rad/s). 0이면 끔
+  carGrip: 14,            // 높을수록 미끄러짐 적음 (9→14)
   carGripHandbrake: 1.4,
   carBounce: 0.35,
   camZoomAtMax: 0.75,     // 최고속일 때 줌 배수 (정지 1.0)
@@ -1907,8 +1909,13 @@ function updateMyCar(dt, z, input) {
   fwd = Math.max(-FEEL.carReverseMax, Math.min(FEEL.carMaxSpeed, fwd));
   c.vx += fx * (fwd - fwd0); c.vy += fy * (fwd - fwd0);
   const steer = (right ? 1 : 0) - (left ? 1 : 0);
-  const k = Math.min(1, Math.abs(fwd) / 120);
+  const k = Math.min(1, Math.abs(fwd) / FEEL.carSteerFullAt);
   c.a += steer * FEEL.carTurn * k * dt * Math.sign(fwd || 1) * (hb ? 1.5 : 1);
+  // 운전 보조: 핸들을 안 잡고 달리는 중이면 도로 방향으로 살살 맞춰 준다 (연출/조작감, FEEL.carRoadAssist)
+  if (!steer && !hb && FEEL.carRoadAssist > 0 && Math.abs(fwd) > 30) {
+    const rd = roadAt(z, c.x, c.y);
+    if (rd) { let ra = Math.atan2(rd.uy, rd.ux); if (Math.cos(ra - c.a) < 0) ra += Math.PI; let diff = Math.atan2(Math.sin(ra - c.a), Math.cos(ra - c.a)); const lim = FEEL.carRoadAssist * k * dt; c.a += Math.max(-lim, Math.min(lim, diff)); }
+  }
   // 새 방향 기준으로 분해: 옆 미끄러짐 성분만 그립으로 줄인다 (핸드브레이크면 덜 줄어 드리프트)
   const nfx = Math.cos(c.a), nfy = Math.sin(c.a);
   const f1 = c.vx * nfx + c.vy * nfy, l1 = -c.vx * nfy + c.vy * nfx;
