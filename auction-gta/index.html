@@ -1209,6 +1209,9 @@ Object.assign(FEEL, {
   hitMin: 30000, hitMax: 100000, // 걷다가 차에 치였을 때 치료비(원)
   hitKnock: 22,           // 치였을 때 튕겨 나가는 거리(px)
   hitSpeed: 15,           // 이 속도 미만으로 닿으면 치인 것으로 치지 않음
+  pedMin: 300000, pedMax: 1000000, // 내 차로 보행자를 쳤을 때 합의금(원)
+  pedKnock: 26,           // 친 보행자가 튕겨 나가는 거리(px)
+  pedStun: 1.2,           // 친 보행자가 쓰러져 있는 시간(초)
   walkerFleeDist: 52,     // 행인이 차를 피해 물러나는 거리(px)
   decorWalkers: 16,       // 구역당 행인 수
   cashTickEvery: 0.07,    // 현금 숫자가 돌 때 틱 소리 간격(초)
@@ -3232,6 +3235,22 @@ function update(dt) {
 function updateDecor(dt) {
   const z = Game.zone;
   for (const w of Game.decor) {
+    w.hurtCd = Math.max(0, (w.hurtCd || 0) - dt);
+    if (w.stun > 0) { w.stun -= dt; w.moving = false; continue; }
+    // 내 차에 치임: 튕겨 나가 잠시 쓰러지고, 나는 합의금을 문다
+    if (Game.driving && Game.car.speed > FEEL.hitSpeed && w.hurtCd <= 0) {
+      const c = Game.car;
+      if (pointInCar(w.x, w.y, c.x, c.y, c.a, 14, 9)) {
+        let nx = w.x - c.x, ny = w.y - c.y; const d = Math.hypot(nx, ny) || 1; nx = nx / d * 0.6 + Math.cos(c.a) * 0.8; ny = ny / d * 0.6 + Math.sin(c.a) * 0.8; const L = Math.hypot(nx, ny) || 1;
+        w.x += nx / L * FEEL.pedKnock; w.y += ny / L * FEEL.pedKnock; w.vx = w.vy = 0; w.stun = FEEL.pedStun; w.hurtCd = 3; w.ai.t = 1.5; w.ai.ix = Math.sign(nx) || 1; w.ai.iy = Math.sign(ny); w.ai.flee = true;
+        c.vx *= 0.6; c.vy *= 0.6; c.speed = Math.hypot(c.vx, c.vy); c.rock = 1;
+        shake(7, 0.35); Sound.play('crash'); Game.hitstop = 0.06;
+        if (!REDUCED_MOTION) for (let i = 0; i < 6; i++) Particles.push({ x: w.x, y: w.y - 8, vx: (Math.random() - 0.5) * 120, vy: -40 - Math.random() * 70, g: 220, life: 0.5, max: 0.5, col: 'rgba(255,230,120,', r: 1.5 });
+        const fee = Math.round((FEEL.pedMin + Math.random() * (FEEL.pedMax - FEEL.pedMin)) / 10000) * 10000;
+        State.cash -= fee; HUD.setCash(State.cash); Toast.show(`보행자를 쳤다! 합의금 ${fmtWon(fee)}`);
+        w.moving = false; continue;
+      }
+    }
     w.ai.t -= dt;
     if (w.ai.t <= 0) { w.ai.t = 1 + Math.random() * 3; const a = Math.floor(Math.random() * 5); w.ai.ix = [0, 1, -1, 0, 0][a]; w.ai.iy = [0, 0, 0, 1, -1][a]; w.ai.flee = false; }
     // 차가 빠르게 다가오면 물러난다
