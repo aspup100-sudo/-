@@ -1,0 +1,180 @@
+/* 가독성 다듬기: clean.css·sheet.css 위에 얹어요. 글자 크기·굵기 단계를 정리하고, 안내 문장은 작고 연하게, 입력칸은 어디서나 테두리가 보이게.
+   되돌리려면 index.html·pick.html에서 이 파일 줄만 지우면 돼요. */
+:root{--polish-radius:14px}
+body{font-size:15px;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;letter-spacing:-.012em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{padding-inline:18px}
+header.top{margin-inline:-18px;padding-inline:18px}
+
+/* 머리: 제목은 조금 작게, 설명·진행 상황은 한 톤 연하게 */
+h1{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.25}
+.save{font-size:12px}
+.progress{font-size:13.5px;line-height:1.5;margin:3px 0 10px}
+.progress b{font-weight:700}
+.bar{gap:6px 8px;margin-bottom:8px}
+.bar .mini{font-size:13px;padding:7px 12px}
+
+/* 탭: 선택한 탭만 진하게, 글자 사이 넓지 않게 */
+.tabs,.tabs.three{margin-inline:-18px;padding-inline:10px;border-bottom:1px solid var(--ln)}
+.tabs button{font-size:15px;font-weight:600;color:var(--sub);padding:12px 4px 10px;letter-spacing:-.01em}
+.tabs button[aria-selected="true"]{color:var(--tx);font-weight:750;border-bottom-color:var(--acc)}
+
+/* 소제목과 안내 문장: 제목은 또렷하게, 설명은 작게 */
+section.view{gap:16px;padding-top:16px}
+.blk{gap:8px}
+h2{font-size:17px;font-weight:750;letter-spacing:-.025em;line-height:1.3}
+.hint{font-size:13.5px;line-height:1.55;color:var(--sub)}
+.hint b{color:var(--tx);font-weight:650}
+.hint.legend{font-size:12.5px;color:var(--mute);padding:10px 12px;background:var(--bg3);border-radius:10px;line-height:1.5}
+.hint.legend b{color:var(--sub)}
+.foot{font-size:12.5px;line-height:1.55;color:var(--mute)}
+.empty{font-size:14px;padding:28px 0;color:var(--mute)}
+
+/* 입력칸: 바탕과 같은 색이라 안 보이던 칸에 테두리 */
+textarea,input[type=text],input[type=number],input[type=email],input[type=password],select{background:var(--card);border:1.5px solid var(--ln);border-radius:12px;padding:11px 14px;font-size:15px;line-height:1.4}
+textarea:focus,input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+select{appearance:none;-webkit-appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666D79' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:18px}
+label.fld{font-size:12.5px;font-weight:600;color:var(--sub);gap:6px}
+.bk textarea,.bk textarea:focus{background:var(--bg2);border:1.5px solid transparent;font-size:14px;line-height:1.5;padding:10px 12px}
+.bk textarea:focus{background:var(--card);border-color:var(--acc);box-shadow:none}
+.bk textarea::placeholder,#dongSearch::placeholder{color:var(--mute)}
+#dongSearch{font-size:15px;padding:12px 14px 12px 42px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A0A6B0' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:14px center;background-size:20px}
+
+/* 칩(걸러 보기): 여러 줄로 쌓이지 않게 한 줄로 두고 옆으로 넘겨요 */
+#filters,#streets,#talkCats,#mineFilters{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-18px;padding-inline:18px;padding-block:2px 4px;-webkit-overflow-scrolling:touch;scroll-padding-inline:18px}
+#filters::-webkit-scrollbar,#streets::-webkit-scrollbar,#talkCats::-webkit-scrollbar,#mineFilters::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:13.5px;padding:7px 13px;line-height:1.3;border-color:var(--ln);color:var(--sub);font-weight:550;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--tx);border-color:var(--tx);color:var(--card);font-weight:650}
+.chip b{font-weight:700}
+a.chip.dong{color:var(--tx)}
+a.chip.zoned::after{color:var(--acc)}
+.chip.dong b{color:var(--sub)}
+
+/* 길별 묶음 제목: 목록 사이에서 눈에 띄게 */
+.grp{font-size:13.5px;font-weight:700;color:var(--tx);padding:14px 2px 2px;margin:4px 0 -2px}
+.grp span{overflow-wrap:anywhere}
+
+/* 중개업소 카드: 이름을 가장 크게, 주소·번호는 보통, 버튼은 한 줄 */
+.bk,.lt,.area,.post{border-radius:var(--polish-radius);box-shadow:0 1px 2px rgba(22,24,28,.04),0 6px 16px rgba(22,24,28,.05)}
+.bk,.lt{padding:15px 16px 14px;gap:8px}
+.bk-top{gap:6px 8px;align-items:center}
+.bk h3,.lt h3{font-size:17px;font-weight:750;letter-spacing:-.025em;line-height:1.3}
+.badge{font-size:11.5px;font-weight:650;padding:3px 8px;border-radius:7px}
+.star-tg{font-size:12px;padding:3px 8px;border-radius:7px}
+.row{font-size:14px;line-height:1.5;gap:3px 10px;color:var(--tx)}
+.row .v{color:var(--tx)}
+.row a,.lk{font-size:13px;font-weight:600}
+.num{font-size:15.5px;font-weight:600;letter-spacing:.01em}
+.mini{font-size:12.5px;padding:6px 11px;border-radius:9px;background:var(--bg2)}
+.acts{gap:6px;margin-top:2px}
+.tg{font-size:13.5px;font-weight:600;padding:10px 4px;border-radius:10px;background:var(--bg2);color:var(--sub);border:1.5px solid transparent}
+.tg.call[aria-pressed="true"]{border-color:color-mix(in srgb,var(--call) 35%,transparent)}
+.tg.visit[aria-pressed="true"]{border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.tg.pick[aria-pressed="true"]{border-color:color-mix(in srgb,var(--acc) 35%,transparent)}
+.tags{font-size:13px;line-height:1.5}
+.bk[data-status="visit"]::after,.bk[data-status="call"]::after{font-size:12px;padding:5px 9px;top:15px;right:16px}
+
+/* 구역 카드: 이름·유형 다음에 단계는 보통 글씨로, 면적은 작은 표로 */
+.lt.zone{gap:6px}
+.lt.zone .lt-head{align-items:center;gap:8px}
+.lt.zone h3{flex:1;min-width:0}
+.zchip{font-size:12px;font-weight:650;padding:3px 9px;border-radius:7px;flex:none}
+.stage{font-size:14px;font-weight:500;color:var(--tx);line-height:1.5}
+.stage+.stage{margin-top:-4px}
+.facts{gap:6px;margin-top:4px}
+.facts li{font-size:12.5px;padding:4px 9px;border-radius:7px;background:var(--bg2);color:var(--sub)}
+.deal-btn{font-size:14px;margin-top:4px}
+
+/* 매물 카드와 예산 */
+.price{font-size:22px;font-weight:800}
+.bud{gap:10px}
+.rt-sum{font-size:14px;line-height:1.55}
+.rt-sum b{font-size:16px;font-weight:750}
+
+/* 지도 상자 */
+.map{border-radius:var(--polish-radius);padding:12px}
+.map-head h2{font-size:16px}
+.map-head span{font-size:12px;color:var(--mute)}
+.zleg{font-size:12px;color:var(--mute)}
+.zl{font-size:12.5px}
+
+/* 동선 */
+.rt-opts{gap:10px}
+.rt-add{gap:8px}
+.rt-add .mini{font-size:13.5px;padding:10px 14px;border-radius:12px}
+.rt-add select{font-size:14px;padding:10px 36px 10px 12px}
+.rt-item{border-radius:var(--polish-radius);padding:12px 14px}
+.rt-n{width:28px;height:28px;border-radius:14px;font-size:13px}
+.rt-main .v{font-size:13px}
+.rt-leg{font-size:13px;font-weight:500}
+
+/* 첫 화면 */
+#seoulBlk{gap:10px}
+.area{border-radius:var(--polish-radius);padding:14px 16px;gap:4px}
+.area-name{font-size:19px;font-weight:750;letter-spacing:-.025em}
+.area-go{font-size:13px;font-weight:600}
+.recent-del{color:var(--mute)}
+.dm-cap{font-size:13px;color:var(--sub)}
+#home .blk+.blk{margin-top:4px}
+#dongList .chips{gap:8px}
+.gu-title{font-size:19px}
+
+/* 커뮤니티 */
+.post{padding:15px 16px;gap:6px}
+.post h3{font-size:16.5px;font-weight:700;line-height:1.35;letter-spacing:-.02em}
+.pcat{font-size:11.5px;font-weight:650;padding:3px 8px}
+.ptext{font-size:13.5px;line-height:1.55}
+.ptext.full{font-size:15px;line-height:1.75}
+.by{font-size:12px;color:var(--mute)}
+.cm{padding:12px 2px}
+.cm-text{font-size:14px;line-height:1.55}
+
+/* 리뷰 */
+.rv-sum{font-size:13px;padding:9px 12px;border-radius:10px}
+.rv-text{font-size:14px;line-height:1.55}
+.rv-save{font-size:14px;font-weight:650;padding:10px 16px;border-radius:12px}
+.rv-h{font-size:13px}
+
+/* 내 임장 */
+.mine-sum{font-size:13.5px}
+.mine-grp h2{font-size:16px}
+
+/* 로그인 */
+.auth-card{border-radius:18px;padding:22px 20px;gap:12px;box-shadow:0 1px 2px rgba(22,24,28,.04),0 10px 28px rgba(22,24,28,.07)}
+.auth-card h2{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.auth-card form{gap:12px}
+.auth-card .rv-save{padding:13px 16px;font-size:15.5px;font-weight:700;border-radius:12px}
+.kk-btn{border-radius:12px;padding:13px 16px;font-size:15.5px;font-weight:700}
+.kk-or{font-size:12.5px;color:var(--mute);margin-top:6px}
+.lkbtn{font-size:14px;font-weight:600;padding:6px 0}
+.auth-err{font-size:13px}
+
+/* 대화 상자 */
+dialog{border-radius:18px;padding:20px 18px;box-shadow:0 20px 50px rgba(0,0,0,.25);border:1px solid var(--ln)}
+dialog form{gap:12px}
+dialog h2{font-size:19px;font-weight:800}
+dialog .acts{margin-top:4px}
+
+/* 아래 메뉴: 글자 조금 키우고, 지금 화면은 강조색으로 */
+.bnav a,.bnav button{font-size:11.5px;font-weight:550;gap:3px;padding:5px 0 2px}
+.bnav svg{width:24px;height:24px;stroke-width:1.7}
+.bnav [aria-current="page"]{color:var(--acc)}
+.bnav [aria-current="page"] svg{stroke-width:2.2}
+.fab{font-size:15px;font-weight:700;padding:13px 20px}
+.totop{font-size:13.5px;padding:10px 14px}
+
+/* 지도 시트(동 화면)의 제목 줄은 자리가 좁으니 조금 더 촘촘하게 */
+body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap > header.top{padding-top:24px}
+.grip::before{background:var(--ln)}
+
+/* 어두운 화면에서 아이콘 색만 바꿔요 */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A3A9B4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")}}
+:root[data-theme="dark"] select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A3A9B4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")}
+
+/* 큰 화면(태블릿·PC)에서는 조금 넓게 */
+@media (min-width:600px){
+  .wrap{max-width:600px;padding-inline:24px}
+  header.top{margin-inline:-24px;padding-inline:24px}
+  .tabs,.tabs.three{margin-inline:-24px;padding-inline:16px}
+  #filters,#streets,#talkCats,#mineFilters{margin-inline:-24px;padding-inline:24px;flex-wrap:wrap;overflow:visible}
+  .bnav{max-width:600px}
+}
