@@ -76,6 +76,23 @@
         sum.appendChild(document.createTextNode(p[0] + " ")); sum.appendChild(el("b", null, String(p[1])));
       });
       $("#progress").textContent = rows.length ? "여러 동에 남긴 내 기록 " + rows.length + "곳" : "아직 남긴 기록이 없어요";
+      // 오늘·이번 주에 다닌 것: 날짜만 비교해요 (st: 통화·방문을 누른 때, at: 마지막으로 손댄 때)
+      var today = new Date().toDateString(), week = Date.now() - 7 * 86400000, td = { v: 0, c: 0, m: 0 }, wk = { v: 0, c: 0, m: 0 };
+      rows.forEach(function (x) {
+        var t = new Date(x.n.st || x.n.at || 0), isT = t.toDateString() === today, isW = t.getTime() >= week;
+        if (x.n.status === "visit") { if (isT) td.v++; if (isW) wk.v++; }
+        if (x.n.status === "call") { if (isT) td.c++; if (isW) wk.c++; }
+        if ((x.n.memo || "").trim() && new Date(x.n.at || 0).toDateString() === today) td.m++;
+        if ((x.n.memo || "").trim() && new Date(x.n.at || 0).getTime() >= week) wk.m++;
+      });
+      var rc = $("#mineRecent");
+      if (rc) {
+        rc.textContent = "";
+        var line = function (label, k) { var p = el("p", "mine-day"); p.appendChild(el("b", null, label)); p.appendChild(document.createTextNode(" 방문 " + k.v + " · 통화 " + k.c + " · 메모 " + k.m)); return p; };
+        if (td.v + td.c + td.m) rc.appendChild(line("오늘", td));
+        if (wk.v + wk.c + wk.m) rc.appendChild(line("이번 주", wk));
+        rc.hidden = !rc.childNodes.length;
+      }
 
       // 동별로 묶고, 최근에 기록한 동·곳이 위로 와요.
       var groups = {}, order = [];

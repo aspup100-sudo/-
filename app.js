@@ -55,6 +55,13 @@
 
   var cards = {};
   var QUICK = ["매물 있음", "매물 없음", "친절", "불친절", "다시 연락", "문 닫음"];
+  function paintAsk(id) {
+    var c = cards[id], dt = c && c.querySelector(".askbox"); if (!dt) return;
+    var a = (store[id] || {}).ask || [], n = (AREA.ask || []).length;
+    dt.querySelectorAll("input").forEach(function (cb) { cb.checked = a.indexOf(+cb.dataset.i) >= 0; });
+    dt.querySelector(".askbox-s").textContent = a.length ? "물어본 것 " + a.length + "/" + n : "물어볼 것 " + n + "가지";
+    dt.classList.toggle("done", a.length > 0 && a.length === n);
+  }
   function paintQuick(id) {
     var c = cards[id]; if (!c) return;
     var parts = ((store[id] || {}).memo || "").split(/\s*[,，]\s*|\n/).map(function (x) { return x.trim(); });
@@ -115,6 +122,18 @@
       qm.appendChild(q);
     });
     c.appendChild(qm);
+    // 물어볼 것: 통화하거나 찾아갔을 때 무엇을 물었는지 하나씩 체크해요 (이 동의 질문 목록, 기기에 저장)
+    var ASK = AREA.ask || [];
+    if (ASK.length) {
+      var dt = el("details", "askbox"), sm = el("summary", "askbox-s"); dt.appendChild(sm);
+      var ul = el("ul", "askbox-l");
+      ASK.forEach(function (q, i) {
+        var li = el("li"), lb = el("label", "askbox-i"), cb = el("input"); cb.type = "checkbox"; cb.dataset.i = String(i);
+        cb.addEventListener("change", function () { var r = rec(id), a = (r.ask || []).filter(function (x) { return x !== i; }); if (cb.checked) a.push(i); r.ask = a; paintAsk(id); persist(id); changed(id); });
+        lb.appendChild(cb); lb.appendChild(el("span", null, q)); li.appendChild(lb); ul.appendChild(li);
+      });
+      dt.appendChild(ul); c.appendChild(dt);
+    }
     var rv = el("div", "rv"); rv.id = "rv-" + id; c.appendChild(rv);
     return c;
   }
