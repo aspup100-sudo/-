@@ -129,6 +129,64 @@
       render();
     });
   });
+  // 기록 옮기기·백업: 이 기기의 메모·방문·통화·동선·최근 본 구역을 파일 하나로 내려받고, 다른 기기에서 가져와요.
+  // 가져올 때는 곳마다 더 최근에 기록한 쪽을 남겨요. 그래서 두 기기 기록을 합쳐도 돼요.
+  var KEYS = ["changsin-notes", "changsin-my-reviews", "cs-recent", "cs-name"];
+  var ioMsg = $("#mineIoMsg");
+  function say(t) { if (ioMsg) ioMsg.textContent = t; }
+  function stamp() { var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; }; return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()); }
+  function pack() {
+    var out = { app: "imjang", v: 1, at: new Date().toISOString() };
+    KEYS.forEach(function (k) { try { var v = localStorage.getItem(k); if (v != null) out[k] = JSON.parse(v); } catch (e) { out[k] = localStorage.getItem(k); } });
+    return out;
+  }
+  $("#mineExport").addEventListener("click", function () {
+    var d = pack(), n = Object.keys(d["changsin-notes"] || {}).length;
+    var blob = new Blob([JSON.stringify(d, null, 1)], { type: "application/json" });
+    var a = el("a"); a.href = URL.createObjectURL(blob); a.download = "임장수첩-기록-" + stamp() + ".json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    say("기록 " + n + "곳을 파일로 내려받았어요. 파일 앱이나 메신저 '나와의 채팅'에 두면 안전해요.");
+  });
+  $("#mineImportBtn").addEventListener("click", function () { $("#mineImport").click(); });
+  $("#mineImport").addEventListener("change", function () {
+    var f = this.files && this.files[0]; this.value = ""; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var d; try { d = JSON.parse(rd.result); } catch (e) { say("임장 수첩 기록 파일이 아니에요."); return; }
+      if (!d || d.app !== "imjang" || !d["changsin-notes"]) { say("임장 수첩 기록 파일이 아니에요."); return; }
+      var cur = read("changsin-notes"), inc = d["changsin-notes"], added = 0, newer = 0;
+      Object.keys(inc).forEach(function (id) {
+        var a = cur[id], b = inc[id]; if (!b) return;
+        if (!a) { cur[id] = b; added++; } else if ((b.at || "") > (a.at || "")) { cur[id] = b; newer++; }
+      });
+      try { localStorage.setItem("changsin-notes", JSON.stringify(cur)); } catch (e) { say("저장 공간이 모자라 가져오지 못했어요."); return; }
+      if (d["changsin-my-reviews"]) { var rv = read("changsin-my-reviews"), ri = d["changsin-my-reviews"]; Object.keys(ri).forEach(function (id) { if (!rv[id] || (ri[id].at || "") > (rv[id].at || "")) rv[id] = ri[id]; }); try { localStorage.setItem("changsin-my-reviews", JSON.stringify(rv)); } catch (e) {} }
+      if (Array.isArray(d["cs-recent"])) { try { var rc = JSON.parse(localStorage.getItem("cs-recent") || "[]"), seen = {}; var merged = rc.concat(d["cs-recent"]).filter(function (x) { if (!x || !x.h || seen[x.h]) return false; seen[x.h] = 1; return true; }).slice(0, 8); localStorage.setItem("cs-recent", JSON.stringify(merged)); } catch (e) {} }
+      say("가져왔어요: 새로 " + added + "곳, 더 최근 기록으로 바뀐 곳 " + newer + "곳.");
+      render();
+    };
+    rd.readAsText(f);
+  });
+  // 글로 복사: 메신저나 메모 앱에 붙여 넣기 좋게 동별로 정리한 글
+  $("#mineCopy").addEventListener("click", function () {
+    var btn = this, notes = read("changsin-notes"), ids = Object.keys(notes).filter(function (id) { var n = notes[id]; return n && ((n.memo || "").trim() || n.status || n.star); });
+    if (!ids.length) { say("아직 복사할 기록이 없어요."); return; }
+    resolve(ids).then(function (found) {
+      var by = {}, order = [];
+      ids.forEach(function (id) { var f = found[id] || { name: notes[id].nm || id, where: notes[id].wh || "", addr: "" }; var k = f.where || "어느 동인지 모르는 곳"; if (!by[k]) { by[k] = []; order.push(k); } by[k].push({ f: f, n: notes[id] }); });
+      var lines = ["임장 수첩 기록 (" + when(new Date().toISOString()) + ")"];
+      order.forEach(function (k) {
+        lines.push("", "■ " + k);
+        by[k].sort(function (a, b) { return (b.n.at || "") > (a.n.at || "") ? 1 : -1; }).forEach(function (x) {
+          var tag = [x.n.star ? "★" : "", { visit: "방문", call: "통화" }[x.n.status] || ""].filter(Boolean).join(" ");
+          lines.push("- " + x.f.name + (tag ? " [" + tag + "]" : "") + (x.f.addr ? " · " + x.f.addr : "") + ((x.n.memo || "").trim() ? "\n  " + x.n.memo.trim().replace(/\n/g, "\n  ") : ""));
+        });
+      });
+      var text = lines.join("\n");
+      var done = function () { btn.textContent = "복사됨"; setTimeout(function () { btn.textContent = "글로 복사"; }, 1500); say(ids.length + "곳 기록을 글로 복사했어요. 메모 앱이나 메신저에 붙여 넣으세요."); };
+      try { navigator.clipboard.writeText(text).then(done, function () { say("복사하지 못했어요. 파일로 내려받기를 써 주세요."); }); } catch (e) { say("복사하지 못했어요. 파일로 내려받기를 써 주세요."); }
+    });
+  });
   // 로그인하면 계정에 저장된 내 리뷰를 reviews.js가 받아 와요. 받으면 다시 그려요.
   window.addEventListener("cs-my-reviews", render);
   window.addEventListener("pageshow", function (e) { if (e.persisted) render(); });

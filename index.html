@@ -131,7 +131,18 @@
         <button class="chip" type="button" data-f="review" aria-pressed="false">내 리뷰</button>
       </div>
       <div class="list" id="mineList"></div>
-      <p class="hint legend">메모·방문·통화·동선은 이 기기에만 저장돼서 다른 기기에서는 안 보여요. 리뷰는 로그인한 계정 것이 보여요.</p>
+      <div class="blk mine-io">
+        <h2>기록 옮기기·백업</h2>
+        <p class="hint">메모·방문·통화·동선은 이 기기에만 저장돼요. 휴대폰을 바꾸거나 앱을 지우기 전에 파일로 내려받아 두고, 새 기기에서 가져오면 그대로 이어져요.</p>
+        <div class="rt-add">
+          <button class="mini strong" type="button" id="mineExport">파일로 내려받기</button>
+          <button class="mini" type="button" id="mineImportBtn">파일 가져오기</button>
+          <button class="mini" type="button" id="mineCopy">글로 복사</button>
+          <input type="file" id="mineImport" accept="application/json,.json" hidden>
+        </div>
+        <p class="hint" id="mineIoMsg" role="status"></p>
+      </div>
+      <p class="hint legend">리뷰는 로그인한 계정 것이 보여요.</p>
     </div>
   </section>
 
@@ -218,7 +229,10 @@
     </div>
     <div class="chips" id="streets" role="group" aria-label="길별로 보기" hidden></div>
 
-    <p class="hint legend"><b>체크와 메모</b>는 이 기기에서 나만 봐요. <b>리뷰</b>는 회원 모두가 봐요.</p>
+    <div class="bk-search">
+      <input type="search" id="bkSearch" placeholder="이름·주소·전화·메모로 찾기" autocomplete="off" enterkeyhint="search" aria-label="중개업소 찾기">
+      <span class="bk-search-n" id="bkSearchCount" aria-live="polite"></span>
+    </div>
     <div class="chips" id="filters" role="group" aria-label="목록 걸러 보기">
       <button class="chip" data-f="all" aria-pressed="true">전체</button>
       <button class="chip" data-f="first" aria-pressed="false">먼저 갈 곳</button>
@@ -230,6 +244,7 @@
       <button class="chip" data-f="fake" aria-pressed="false">허위매물 신고</button>
     </div>
     <div class="list" id="brokerList"></div>
+    <p class="hint legend"><b>체크와 메모</b>는 이 기기에서 나만 봐요. <b>리뷰</b>는 회원 모두가 봐요.</p>
     <p class="foot" id="foot"></p>
   </section>
 

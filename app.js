@@ -54,6 +54,12 @@
   }
 
   var cards = {};
+  var QUICK = ["매물 있음", "매물 없음", "친절", "불친절", "다시 연락", "문 닫음"];
+  function paintQuick(id) {
+    var c = cards[id]; if (!c) return;
+    var parts = ((store[id] || {}).memo || "").split(/\s*[,，]\s*|\n/).map(function (x) { return x.trim(); });
+    c.querySelectorAll(".qm-b").forEach(function (q) { q.setAttribute("aria-pressed", String(parts.indexOf(q.textContent) >= 0)); });
+  }
   function setPick(id, on) { rec(id).pick = on ? 1 : 0; paint(id); applyFilter(); persist(id); tabCount(); changed(id); }
   function card(b) {
     var id = b[0];
@@ -79,6 +85,8 @@
       var row = i ? c.appendChild(el("p", "row")) : tl;
       var n = el("span", "num", p); row.appendChild(n); row.appendChild(copyBtn(p, n));
       var t = el("a", null, "전화 걸기"); t.href = "tel:" + p.replace(/[^\d+]/g, ""); row.appendChild(t);
+      // 전화를 걸면 아직 표시가 없는 곳은 "통화함"으로 바로 표시해요 (잘못 눌렀으면 통화함 버튼을 다시 누르면 풀려요)
+      t.addEventListener("click", function () { var r = rec(id); if (!r.status) { r.status = "call"; paint(id); progress(); applyFilter(); persist(id); changed(id); } });
     });
     var acts = el("div", "acts");
     [["call", "통화함"], ["visit", "방문함"]].forEach(function (s) {
@@ -91,9 +99,21 @@
     acts.appendChild(pk);
     c.appendChild(acts);
     var ta = el("textarea"); ta.id = "memo-" + id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 번지, 가격, 들은 얘기"; ta.setAttribute("aria-label", b[1] + " 메모");
-    ta.addEventListener("input", function () { rec(id).memo = ta.value; later(id); });
+    ta.addEventListener("input", function () { rec(id).memo = ta.value; paintQuick(id); later(id); });
     ta.addEventListener("blur", applyFilter);
     c.appendChild(ta);
+    // 빠른 메모: 현장에서 한 손으로 누르기만 해도 메모에 붙어요. 이미 있는 말은 다시 누르면 빠져요.
+    var qm = el("div", "qm"); qm.setAttribute("aria-label", "빠른 메모");
+    QUICK.forEach(function (w) {
+      var q = el("button", "qm-b", w); q.type = "button";
+      q.addEventListener("click", function () {
+        var r = rec(id), parts = (r.memo || "").split(/\s*[,，]\s*|\n/).map(function (x) { return x.trim(); }).filter(Boolean), i = parts.indexOf(w);
+        if (i >= 0) parts.splice(i, 1); else parts.push(w);
+        r.memo = parts.join(", "); ta.value = r.memo; paintQuick(id); persist(id); applyFilter(); changed(id);
+      });
+      qm.appendChild(q);
+    });
+    c.appendChild(qm);
     var rv = el("div", "rv"); rv.id = "rv-" + id; c.appendChild(rv);
     return c;
   }
@@ -358,6 +378,7 @@
     var sb = c.querySelector(".star-tg"); if (sb) { sb.setAttribute("aria-pressed", String(!!r.star)); sb.textContent = r.star ? "★ 다시 갈 곳" : "☆ 다시 갈 곳"; }
     var pk = c.querySelector(".tg.pick"); if (pk) { pk.setAttribute("aria-pressed", String(!!r.pick)); pk.textContent = r.pick ? "동선에 담음" : "동선 담기"; }
     var ta = $("#memo-" + id); if (ta && document.activeElement !== ta && ta.value !== (r.memo || "")) ta.value = r.memo || "";
+    paintQuick(id);
     var bj = $("#bunji-" + id); if (bj && document.activeElement !== bj && bj.value !== (r.bunji || "")) bj.value = r.bunji || "";
   }
   function paintAll() { Object.keys(cards).forEach(paint); progress(); applyFilter(); tabCount(); }
@@ -378,6 +399,7 @@
     if (b[10] && !(regionFn && regionFn(id)) && !r.pick) return false; // 다른 동: 영역 안이거나 동선에 담은 것만
     if (regionFn && !regionFn(id)) return false;
     if (street && b[5] !== street) return false;
+    if (query && ([b[1], b[2], b[4], r.memo || ""].join(" ").toLowerCase().replace(/[\s-]/g, "").indexOf(query) < 0)) return false;
     if (filter === "first" && !b[6]) return false;
     if (filter === "todo" && r.status) return false;
     if (filter === "pick" && !r.pick) return false;
@@ -392,8 +414,19 @@
     var shown = 0, per = {};
     all().forEach(function (b) { var ok = visible(b); cards[b[0]].hidden = !ok; if (ok) { shown++; per[b[5]] = 1; } });
     document.querySelectorAll("#brokerList .grp").forEach(function (g) { g.hidden = !per[g.dataset.street]; });
-    $("#emptyB").hidden = shown > 0;
+    var e = $("#emptyB"); e.hidden = shown > 0; e.textContent = query ? "'" + rawQuery + "'에 맞는 중개업소가 없어요." : "조건에 맞는 중개업소가 없어요.";
+    var sc = $("#bkSearchCount"); if (sc) sc.textContent = query ? shown + "곳" : "";
     changed("");
+  }
+  // 이름·주소·전화번호·내 메모로 찾기 (띄어쓰기와 하이픈은 무시해요)
+  var query = "", rawQuery = "", bkSearch = $("#bkSearch");
+  if (bkSearch) {
+    var qTimer = null;
+    bkSearch.addEventListener("input", function () {
+      clearTimeout(qTimer);
+      qTimer = setTimeout(function () { rawQuery = bkSearch.value.trim(); query = rawQuery.toLowerCase().replace(/[\s-]/g, ""); applyFilter(); }, 150);
+    });
+    bkSearch.addEventListener("keydown", function (e) { if (e.key === "Enter") bkSearch.blur(); });
   }
 
   // 이름
@@ -632,7 +665,7 @@
     goCard: function (id) {
       if (tab !== "brokers") showTab("brokers");
       var c = cards[id]; if (!c) return;
-      if (c.hidden) { filter = "all"; street = ""; if (regionFn) { regionFn = null; regionOff.forEach(function (f) { f(); }); } document.querySelectorAll("#filters .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.f === "all")); }); document.querySelectorAll(".cl, #streets .chip").forEach(function (o) { o.setAttribute("aria-pressed", "false"); }); applyFilter(); }
+      if (c.hidden) { filter = "all"; street = ""; query = rawQuery = ""; if (bkSearch) bkSearch.value = ""; if (regionFn) { regionFn = null; regionOff.forEach(function (f) { f(); }); } document.querySelectorAll("#filters .chip").forEach(function (o) { o.setAttribute("aria-pressed", String(o.dataset.f === "all")); }); document.querySelectorAll(".cl, #streets .chip").forEach(function (o) { o.setAttribute("aria-pressed", "false"); }); applyFilter(); }
       c.scrollIntoView({ block: "center", behavior: "smooth" }); c.classList.add("flash"); setTimeout(function () { c.classList.remove("flash"); }, 1600);
     }
   };

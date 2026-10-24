@@ -30,7 +30,7 @@ h2{font-size:17px;font-weight:750;letter-spacing:-.025em;line-height:1.3}
 .empty{font-size:14px;padding:28px 0;color:var(--mute)}
 
 /* 입력칸: 바탕과 같은 색이라 안 보이던 칸에 테두리 */
-textarea,input[type=text],input[type=number],input[type=email],input[type=password],select{background:var(--card);border:1.5px solid var(--ln);border-radius:12px;padding:11px 14px;font-size:15px;line-height:1.4}
+textarea,input[type=text],input[type=search],input[type=number],input[type=email],input[type=password],select{font:inherit;width:100%;background:var(--card);border:1.5px solid var(--ln);border-radius:12px;padding:11px 14px;font-size:15px;line-height:1.4}
 textarea:focus,input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
 select{appearance:none;-webkit-appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666D79' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:18px}
 label.fld{font-size:12.5px;font-weight:600;color:var(--sub);gap:6px}
@@ -178,3 +178,17 @@ body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap > header.top{p
   #filters,#streets,#talkCats,#mineFilters{margin-inline:-24px;padding-inline:24px;flex-wrap:wrap;overflow:visible}
   .bnav{max-width:600px}
 }
+
+/* 중개업소 찾기 칸 */
+.bk-search{position:relative;display:flex;align-items:center}
+.bk-search input{-webkit-appearance:none;appearance:none;flex:1;padding-left:40px;padding-right:56px;font-size:14.5px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A0A6B0' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center;background-size:19px}
+.bk-search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;width:16px;height:16px;cursor:pointer;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A0A6B0'%3E%3Ccircle cx='12' cy='12' r='11'/%3E%3Cpath d='m8 8 8 8M16 8l-8 8' stroke='white' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
+.bk-search-n{position:absolute;right:14px;font-size:12.5px;color:var(--sub);font-variant-numeric:tabular-nums;pointer-events:none}
+.bk-search input:placeholder-shown+.bk-search-n{display:none}
+/* 빠른 메모 칩 */
+.qm{display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px}
+.qm-b{font:inherit;font-size:12.5px;font-weight:550;padding:5px 10px;border-radius:999px;border:1.5px solid var(--ln);background:var(--card);color:var(--sub);cursor:pointer;line-height:1.3}
+.qm-b[aria-pressed="true"]{background:var(--acc-soft);border-color:var(--acc);color:var(--acc);font-weight:650}
+/* 기록 옮기기 */
+.mine-io{margin-top:12px;padding:14px 16px;background:var(--card);border:1px solid var(--ln);border-radius:var(--polish-radius)}
+.mine-io h2{font-size:16px}
