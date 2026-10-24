@@ -86,18 +86,19 @@
       var n = el("span", "num", p); row.appendChild(n); row.appendChild(copyBtn(p, n));
       var t = el("a", null, "전화 걸기"); t.href = "tel:" + p.replace(/[^\d+]/g, ""); row.appendChild(t);
       // 전화를 걸면 아직 표시가 없는 곳은 "통화함"으로 바로 표시해요 (잘못 눌렀으면 통화함 버튼을 다시 누르면 풀려요)
-      t.addEventListener("click", function () { var r = rec(id); if (!r.status) { r.status = "call"; paint(id); progress(); applyFilter(); persist(id); changed(id); } });
+      t.addEventListener("click", function () { var r = rec(id); if (!r.status) { r.status = "call"; r.st = new Date().toISOString(); paint(id); progress(); applyFilter(); persist(id); changed(id); } });
     });
     var acts = el("div", "acts");
     [["call", "통화함"], ["visit", "방문함"]].forEach(function (s) {
       var bt = el("button", "tg " + s[0], s[1]); bt.type = "button"; bt.setAttribute("aria-pressed", "false"); bt.dataset.s = s[0];
-      bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; paint(id); progress(); applyFilter(); persist(id); changed(id); });
+      bt.addEventListener("click", function () { var r = rec(id); r.status = (r.status === s[0]) ? "" : s[0]; r.st = r.status ? new Date().toISOString() : ""; paint(id); progress(); applyFilter(); persist(id); changed(id); });
       acts.appendChild(bt);
     });
     var pk = el("button", "tg pick", "동선 담기"); pk.type = "button"; pk.setAttribute("aria-pressed", "false");
     pk.addEventListener("click", function () { setPick(id, !rec(id).pick); });
     acts.appendChild(pk);
     c.appendChild(acts);
+    var sw = el("p", "by st-when"); sw.hidden = true; c.appendChild(sw); // 언제 통화·방문했는지
     var ta = el("textarea"); ta.id = "memo-" + id; ta.rows = 1; ta.placeholder = "내 메모 (나만 보여요): 번지, 가격, 들은 얘기"; ta.setAttribute("aria-label", b[1] + " 메모");
     ta.addEventListener("input", function () { rec(id).memo = ta.value; paintQuick(id); later(id); });
     ta.addEventListener("blur", applyFilter);
@@ -376,6 +377,7 @@
     c.querySelectorAll(".tg[data-s]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.s === r.status)); });
     c.dataset.star = r.star ? "1" : "";
     var sb = c.querySelector(".star-tg"); if (sb) { sb.setAttribute("aria-pressed", String(!!r.star)); sb.textContent = r.star ? "★ 다시 갈 곳" : "☆ 다시 갈 곳"; }
+    var sw = c.querySelector(".st-when"); if (sw) { var lb = { call: "통화함", visit: "방문함" }[r.status]; sw.hidden = !lb; if (lb) sw.textContent = lb + (r.st || r.at ? " · " + when(r.st || r.at) : ""); }
     var pk = c.querySelector(".tg.pick"); if (pk) { pk.setAttribute("aria-pressed", String(!!r.pick)); pk.textContent = r.pick ? "동선에 담음" : "동선 담기"; }
     var ta = $("#memo-" + id); if (ta && document.activeElement !== ta && ta.value !== (r.memo || "")) ta.value = r.memo || "";
     paintQuick(id);
@@ -501,7 +503,7 @@
       var h = el("div", "area-head"); h.appendChild(el("span", "area-name", x.n)); h.appendChild(el("span", "area-go", "보기 ›"));
       // 목록에서만 빼요. 그 구역에 남긴 방문·통화·메모 기록은 그대로 남아요.
       var del = el("button", "recent-del", "×"); del.type = "button"; del.setAttribute("aria-label", x.n + " 최근 목록에서 지우기");
-      del.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); writeRecent((readRecent() || []).filter(function (y) { return y && y.h !== x.h; })); buildRecent(); });
+      del.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); writeRecent((readRecent() || []).filter(function (y) { return y && y.h !== x.h; })); buildRecent(); buildCurated(); });
       h.appendChild(del); c.appendChild(h);
       if (x.s) c.appendChild(el("p", "who", x.s));
       var ul = el("ul", "facts");
@@ -511,6 +513,27 @@
       if (x.v || x.k || x.p) c.appendChild(el("p", "by", "내 기록: 방문 " + x.v + " · 통화 " + x.k + (x.p ? " · 동선 " + x.p : "")));
       list.appendChild(c);
     });
+  }
+
+  // 첫 화면: 구역 정보까지 정리한 동(창신·구의). 최근 본 구역에 이미 있으면 겹치지 않게 빼요.
+  function buildCurated() {
+    var seen = {}; (readRecent() || []).forEach(function (x) { if (x && x.h) seen[x.h] = 1; });
+    var list = $("#curatedList"), n = 0; list.textContent = "";
+    AREAS.order.forEach(function (id) {
+      var a = AREAS[id]; if (!a || !a.data) return;
+      var href = hrefOf(a); if (seen[href]) return;
+      var c = el("a", "area curated"); c.href = href;
+      var h = el("div", "area-head"); h.appendChild(el("span", "area-name", a.name)); h.appendChild(el("span", "area-go", "보기 ›")); c.appendChild(h);
+      c.appendChild(el("p", "who", a.sub));
+      var ul = el("ul", "facts"); ul.appendChild(el("li", null, "중개업소 " + a.data.B.length + "곳"));
+      if ((a.zones || []).length) ul.appendChild(el("li", null, "구역 " + a.zones.length + "개 정리"));
+      if ((a.starts || []).length) ul.appendChild(el("li", null, a.starts.slice(0, 2).join("·") + " 출발"));
+      c.appendChild(ul);
+      var zn = (a.zones || []).map(function (z) { return z.short || z.name; }).filter(Boolean);
+      if (zn.length) c.appendChild(el("p", "by", zn.join(" · ")));
+      list.appendChild(c); n++;
+    });
+    $("#curatedBlk").hidden = !n;
   }
 
   // 첫 화면: 서울 전체에서 구 → 동 고르기
@@ -647,7 +670,7 @@
     },
     refilter: function () { applyFilter(); },
     visible: visible, picks: picks, setPick: setPick,
-    setStatus: function (id, s) { var r = rec(id); r.status = s; paint(id); progress(); applyFilter(); persist(id); changed(id); },
+    setStatus: function (id, s) { var r = rec(id); r.status = s; r.st = s ? new Date().toISOString() : ""; paint(id); progress(); applyFilter(); persist(id); changed(id); },
     all: all, addExtra: addExtra,
     setPicks: function (ids, on) { // 여러 곳을 한꺼번에 담거나 빼기
       var n = 0; ids.forEach(function (id) { if (!cards[id]) return; var r = rec(id); if (!!r.pick !== !!on) { r.pick = on ? 1 : 0; r.at = new Date().toISOString(); paint(id); n++; } });
@@ -672,7 +695,12 @@
 
   // 맨 위로: 조금 내려가면 오른쪽 아래에 나타나요
   var toTop = $("#toTop"), ticking = false;
-  function topBtn() { ticking = false; toTop.hidden = (window.pageYOffset || document.documentElement.scrollTop) < 500; }
+  function topBtn() {
+    ticking = false; var y = window.pageYOffset || document.documentElement.scrollTop;
+    toTop.hidden = y < 500;
+    // 내려가면 머리의 진행 상황·버튼 줄을 접어 목록이 더 보이게 (polish.css의 body.scrolled)
+    if (AREA) document.body.classList.toggle("scrolled", y > 140);
+  }
   window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(topBtn); } }, { passive: true });
   toTop.addEventListener("click", function () {
     var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -695,8 +723,8 @@
   }
   if (!AREA && /[?&]talk\b/.test(location.search)) { setSave("", ""); return; } // 커뮤니티 화면은 talk.js가 그려요
   if (!AREA) {
-    $("#home").hidden = false; buildSeoul(); buildRecent();
-    $("#recentClear").addEventListener("click", function () { if (confirm("최근 본 구역 목록을 모두 지울까요? 남긴 방문·통화·메모 기록은 그대로 있어요.")) { writeRecent([]); buildRecent(); } });
+    $("#home").hidden = false; buildSeoul(); buildRecent(); buildCurated();
+    $("#recentClear").addEventListener("click", function () { if (confirm("최근 본 구역 목록을 모두 지울까요? 남긴 방문·통화·메모 기록은 그대로 있어요.")) { writeRecent([]); buildRecent(); buildCurated(); } });
     if (window.CS_BOOT_ERR) { $("#bootErr").hidden = false; $("#bootErr").textContent = window.CS_BOOT_ERR; }
     $("#progress").textContent = "재개발·재건축 구역별 중개업소와 리뷰";
     setSave("", "");

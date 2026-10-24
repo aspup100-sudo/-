@@ -192,3 +192,17 @@ body.mapsheet.tab-brokers #kmapBox:not([hidden]):not(.fs) ~ .wrap > header.top{p
 /* 기록 옮기기 */
 .mine-io{margin-top:12px;padding:14px 16px;background:var(--card);border:1px solid var(--ln);border-radius:var(--polish-radius)}
 .mine-io h2{font-size:16px}
+
+/* 내려가면 머리를 접어요: 제목만 작게 남기고 진행 상황·버튼 줄은 숨겨요 */
+@media (prefers-reduced-motion:no-preference){header.top h1,header.top .progress,header.top .bar{transition:font-size .15s,opacity .15s}}
+body.scrolled header.top{padding-top:10px}
+body.scrolled header.top h1{font-size:17px}
+body.scrolled header.top .progress,body.scrolled header.top .bar,body.scrolled header.top .save{display:none}
+body.scrolled header.top .tabs{margin-top:2px}
+body.scrolled header.top .tabs button{padding-top:8px;padding-bottom:8px}
+body.scrolled .grp,body.scrolled .bk{scroll-margin-top:110px}
+/* 통화·방문한 날 */
+.st-when{font-size:12.5px;color:var(--sub);margin:-2px 0 0}
+/* 정리된 동 카드: 구역 이름들을 한 줄로 */
+.area.curated .by{font-size:12.5px;color:var(--sub);line-height:1.5}
+#home.gu-on #curatedBlk{display:none}
