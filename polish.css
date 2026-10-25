@@ -269,3 +269,8 @@ dialog .fld{display:block;margin:10px 0 0}
 .rt-opts{gap:8px}
 .rt-opts .fld{font-size:12.5px}
 .mine-grp .grp-sub{display:block;font-size:12.5px;font-weight:500;color:var(--sub);margin-top:2px}
+
+/* 8회차: 다니던 동이 있으면 첫 화면 맨 위에 "이어서 보기" */
+#home:not([hidden]){display:flex;flex-direction:column}
+#home.has-recent:not(.gu-on) #recentBlk{order:-1}
+#home.has-recent:not(.gu-on) #recentBlk+#seoulBlk,#home.has-recent:not(.gu-on) #seoulBlk{margin-top:4px}

@@ -551,6 +551,8 @@
       if (r.length) writeRecent(r);
     }
     var list = $("#recentList"); list.textContent = ""; $("#recentHint").hidden = r.length > 0; $("#recentClear").hidden = r.length < 2;
+    $("#home").classList.toggle("has-recent", r.length > 0); // 다니던 동이 있으면 첫 화면 맨 위에 "이어서 보기"로
+    var rh = $("#recentBlk h2"); if (rh && rh.firstChild && rh.firstChild.nodeType === 3) rh.firstChild.textContent = r.length ? "이어서 보기 " : "최근 본 구역 ";
     r.forEach(function (x) {
       if (!x || !x.h || !x.n) return;
       var c = el("a", "area recent"); c.href = x.h;
