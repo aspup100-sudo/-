@@ -80,11 +80,17 @@
   }
 
   function item(n, p, leg, from, real) {
-    var li = el("li", "rt-item"); li.appendChild(el("span", "rt-n", String(n)));
-    var m = el("div", "rt-main"); m.appendChild(el("b", null, p.name)); m.appendChild(el("span", "v", p.addr));
+    var st = A.status(p.id);
+    var li = el("li", "rt-item"); li.dataset.status = st; li.appendChild(el("span", "rt-n", st === "visit" ? "✓" : String(n)));
+    var m = el("div", "rt-main"), nm = el("b", null, p.name); m.appendChild(nm); m.appendChild(el("span", "v", p.addr));
+    if (st) nm.appendChild(el("span", "rt-st", st === "visit" ? "방문함" : "통화함"));
     if (leg != null) m.appendChild(el("span", "rt-leg", (from || "앞 장소") + "에서 걸어서 약 " + (real ? wmins(leg) + "분 · " + wmeters(leg) : mins(leg) + "분 · " + meters(leg))));
     var row = el("div", "row");
     if (p.ll) { var a = el("a", null, "카카오맵 길찾기"); a.href = "https://map.kakao.com/link/to/" + encodeURIComponent(p.name) + "," + p.ll[0] + "," + p.ll[1]; a.target = "_blank"; a.rel = "noopener"; row.appendChild(a); }
+    // 걷다가 바로 표시: 방문함 토글과 전화 걸기 (카드까지 안 가도 돼요)
+    var vs = el("button", "mini" + (st === "visit" ? " on" : ""), st === "visit" ? "방문 취소" : "방문함"); vs.type = "button";
+    vs.addEventListener("click", function () { A.setStatus(p.id, st === "visit" ? "" : "visit"); }); row.appendChild(vs);
+    if (p.tel) { var tl = el("a", "mini", "전화"); tl.href = "tel:" + p.tel.replace(/[^\d+]/g, ""); tl.addEventListener("click", function () { if (!A.status(p.id)) A.setStatus(p.id, "call"); }); row.appendChild(tl); }
     var go = el("button", "mini", "카드 보기"); go.type = "button"; go.addEventListener("click", function () { A.goCard(p.id); }); row.appendChild(go);
     var rm = el("button", "mini", "빼기"); rm.type = "button"; rm.addEventListener("click", function () { A.setPick(p.id, false); }); row.appendChild(rm);
     m.appendChild(row); li.appendChild(m); return li;
@@ -94,7 +100,7 @@
   function render() {
     if (A.tab() !== "route") return;
     var my = ++token;
-    var all = A.picks().map(function (b) { return { id: b[0], name: b[1], addr: b[2], ll: M ? M.geo(b[0]) : null }; });
+    var all = A.picks().map(function (b) { return { id: b[0], name: b[1], addr: b[2], tel: (String(b[4] || "").match(/[\d-]{7,}/) || [""])[0], ll: M ? M.geo(b[0]) : null }; });
     list.textContent = "";
     btnClear.hidden = !all.length;
     if (!all.length) { sum.textContent = "아직 담은 곳이 없어요. 중개업소 탭에서 가고 싶은 곳의 '동선 담기'를 눌러보세요."; $("#rmapBox").hidden = true; return; }

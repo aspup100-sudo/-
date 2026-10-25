@@ -133,6 +133,7 @@
         lb.appendChild(cb); lb.appendChild(el("span", null, q)); li.appendChild(lb); ul.appendChild(li);
       });
       dt.appendChild(ul); c.appendChild(dt);
+      sm.textContent = "물어볼 것 " + ASK.length + "가지"; // paint()가 돌기 전에도 제목이 보이게
     }
     var rv = el("div", "rv"); rv.id = "rv-" + id; c.appendChild(rv);
     return c;

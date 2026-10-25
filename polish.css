@@ -222,3 +222,13 @@ body.scrolled .grp,body.scrolled .bk{scroll-margin-top:110px}
 .mine-recent{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 14px;background:var(--acc-soft);border-radius:12px}
 .mine-day{margin:0;font-size:13.5px;color:var(--tx)}
 .mine-day b{color:var(--acc);margin-right:2px}
+
+/* 동선 목록: 방문한 곳은 체크로, 통화·방문 표시와 바로 누르는 버튼 */
+.rt-item[data-status="visit"]{opacity:.72}
+.rt-item[data-status="visit"] .rt-n{background:var(--ok)}
+.rt-item[data-status="call"] .rt-n{background:var(--call)}
+.rt-st{display:inline-block;margin-left:6px;font-size:11.5px;font-weight:650;padding:2px 7px;border-radius:6px;background:var(--ok-soft);color:var(--ok);vertical-align:middle}
+.rt-item[data-status="call"] .rt-st{background:var(--call-soft);color:var(--call)}
+.rt-item .row{gap:6px;margin-top:4px}
+.rt-item .row .mini{text-decoration:none}
+.rt-item .row .mini.on{background:var(--ok-soft);color:var(--ok)}
