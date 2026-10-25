@@ -232,3 +232,20 @@ body.scrolled .grp,body.scrolled .bk{scroll-margin-top:110px}
 .rt-item .row{gap:6px;margin-top:4px}
 .rt-item .row .mini{text-decoration:none}
 .rt-item .row .mini.on{background:var(--ok-soft);color:var(--ok)}
+
+/* 5회차: 글쓰기·내 계정 같은 창은 카드와 같은 색으로(어두운 화면에서 초록빛 돌던 것 정리) */
+dialog{background:var(--card);color:var(--tx);border-color:var(--ln);border-radius:16px;padding:20px}
+dialog::backdrop{background:rgba(10,12,20,.55);backdrop-filter:blur(2px)}
+dialog .fld{display:block;margin:10px 0 0}
+/* 커뮤니티 목록 끝 안내문이 글쓰기 단추에 가리지 않게 */
+#talkListBox{padding-bottom:88px}
+#talkListBox .legend{margin-top:14px}
+#talkPost{padding-bottom:40px}
+/* 댓글: 글쓴이·시간 줄과 본문 사이 간격, 구분선 */
+#talkCms li{padding:10px 0;border-bottom:1px solid var(--ln)}
+#talkCms li:last-child{border-bottom:0}
+#talkCms .by{font-size:12.5px;color:var(--mute);margin:0 0 3px}
+/* 리뷰 목록: 별·칩 한 줄, 본문은 15px 유지 */
+.rv-item{padding:12px 0;border-bottom:1px solid var(--ln)}
+.rv-item:last-child{border-bottom:0}
+.rv-text{margin:6px 0 4px;line-height:1.5}
