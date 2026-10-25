@@ -259,3 +259,13 @@ dialog .fld{display:block;margin:10px 0 0}
 .strack-b i.ing{background:repeating-linear-gradient(90deg,var(--acc) 0 4px,var(--acc-soft) 4px 8px)}
 .strack-l{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--sub)}
 .strack-l b{color:var(--acc);font-weight:700;margin-right:2px}
+
+/* 7회차: 동선 목록에 내 메모 한 줄, 다시 갈 곳 표시 */
+.rt-memo{margin:4px 0 2px;font-size:13.5px;line-height:1.45;color:var(--tx);background:var(--bg2);border-left:3px solid var(--acc);padding:5px 9px;border-radius:0 8px 8px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt-st.star{background:#FFF4DA;color:#8A5A00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rt-st.star{background:#3A2E12;color:#FFD27A}}
+:root[data-theme="dark"] .rt-st.star{background:#3A2E12;color:#FFD27A}
+/* 동선 설정(출발·머무는 시간)은 한 줄로 작게 */
+.rt-opts{gap:8px}
+.rt-opts .fld{font-size:12.5px}
+.mine-grp .grp-sub{display:block;font-size:12.5px;font-weight:500;color:var(--sub);margin-top:2px}

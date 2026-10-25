@@ -108,7 +108,11 @@
       order.forEach(function (k) {
         var g = groups[k], f0 = g[0].f;
         var hd = el("div", "grp mine-grp");
-        hd.appendChild(el("span", null, f0.where + " · " + g.length + "곳"));
+        var gc = { v: 0, c: 0, s: 0 }; g.forEach(function (x) { if (x.n.status === "visit") gc.v++; else if (x.n.status === "call") gc.c++; if (x.n.star) gc.s++; });
+        var tl = el("span", null, f0.where + " · " + g.length + "곳");
+        var bits = []; if (gc.v) bits.push("방문 " + gc.v); if (gc.c) bits.push("통화 " + gc.c); if (gc.s) bits.push("★ " + gc.s);
+        if (bits.length) tl.appendChild(el("small", "grp-sub", bits.join(" · ")));
+        hd.appendChild(tl);
         if (f0.href) { var go = el("a", "lkbtn", "이 동 보기 ›"); go.href = f0.href; hd.appendChild(go); }
         list.appendChild(hd);
         g.forEach(function (x) { list.appendChild(item(x)); });

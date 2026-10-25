@@ -84,6 +84,8 @@
     var li = el("li", "rt-item"); li.dataset.status = st; li.appendChild(el("span", "rt-n", st === "visit" ? "✓" : String(n)));
     var m = el("div", "rt-main"), nm = el("b", null, p.name); m.appendChild(nm); m.appendChild(el("span", "v", p.addr));
     if (st) nm.appendChild(el("span", "rt-st", st === "visit" ? "방문함" : "통화함"));
+    if (A.star && A.star(p.id)) nm.appendChild(el("span", "rt-st star", "★ 다시"));
+    var memo = A.memo ? A.memo(p.id).trim() : ""; if (memo) { var mm = el("p", "rt-memo", memo.replace(/\s*\n+\s*/g, " · ")); mm.title = memo; m.appendChild(mm); } // 걷다가 내가 적은 것을 바로 봐요
     if (leg != null) m.appendChild(el("span", "rt-leg", (from || "앞 장소") + "에서 걸어서 약 " + (real ? wmins(leg) + "분 · " + wmeters(leg) : mins(leg) + "분 · " + meters(leg))));
     var row = el("div", "row");
     if (p.ll) { var a = el("a", null, "카카오맵 길찾기"); a.href = "https://map.kakao.com/link/to/" + encodeURIComponent(p.name) + "," + p.ll[0] + "," + p.ll[1]; a.target = "_blank"; a.rel = "noopener"; row.appendChild(a); }

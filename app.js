@@ -737,6 +737,7 @@
     onRegionOff: function (f) { regionOff.push(f); },
     status: function (id) { return (store[id] || {}).status || ""; },
     star: function (id) { return !!(store[id] || {}).star; },
+    memo: function (id) { return (store[id] || {}).memo || ""; },
     tab: function () { return tab; },
     onChange: function (f) { listeners.push(f); },
     goCard: function (id) {
