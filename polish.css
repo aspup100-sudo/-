@@ -249,3 +249,13 @@ dialog .fld{display:block;margin:10px 0 0}
 .rv-item{padding:12px 0;border-bottom:1px solid var(--ln)}
 .rv-item:last-child{border-bottom:0}
 .rv-text{margin:6px 0 4px;line-height:1.5}
+
+/* 6회차: 구역 카드 진행 단계 줄 */
+.strack{margin:2px 0 0}
+.strack-b{display:flex;gap:3px}
+.strack-b i{flex:1;height:6px;border-radius:3px;background:var(--ln)}
+.strack-b i.done{background:var(--acc)}
+.strack-b i.done.now{box-shadow:0 0 0 2px var(--acc-soft)}
+.strack-b i.ing{background:repeating-linear-gradient(90deg,var(--acc) 0 4px,var(--acc-soft) 4px 8px)}
+.strack-l{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--sub)}
+.strack-l b{color:var(--acc);font-weight:700;margin-right:2px}

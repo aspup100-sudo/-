@@ -178,12 +178,45 @@
       list.appendChild(c); cards[x.id] = c;
     });
   }
+  // 추진 단계를 여섯 칸 줄로 보여 줘요. 글자만 있으면 어디쯤인지 감이 안 와서, 칸이 채워진 만큼이 진행 정도예요.
+  var STEPS = [
+    ["후보·계획", "아직 구역이 아니에요. 정해지기 전 단계."],
+    ["구역지정", "정비구역으로 정해졌어요. 권리산정기준일을 꼭 확인."],
+    ["조합설립", "조합이 생겼어요. 사업이 본격 시작."],
+    ["사업시행·심의", "설계와 세대수가 정해지는 중."],
+    ["관리처분", "내 집이 어떤 새 집으로 바뀌는지 정해졌어요. 이주 전 단계."],
+    ["착공", "철거·공사 중. 입주권 거래 조건을 확인."]
+  ];
+  function stepOf(t) {
+    t = String(t || "");
+    var ing = /추진중|추진 중|예정|제안|신청/.test(t), n = -1;
+    if (/착공|준공|입주/.test(t)) n = 5;
+    else if (/관리처분/.test(t)) n = 4;
+    else if (/사업시행|건축심의|통합심의|위원회심의|사업계획승인|지구계획승인|촉진계획수립/.test(t)) n = 3;
+    else if (/조합설립|주민합의체/.test(t)) n = 2;
+    else if (/구역\s*지정|구역\s*변경|지구\s*지정|추진위/.test(t)) n = 1;
+    else if (/후보지|대상지|기획완료|관리지역|고시|자문|검토|입안|열람|시범|추진준비|추진 준비|선정/.test(t)) n = 0;
+    return n < 0 ? null : { n: n, ing: ing };
+  }
+  function stageTrack(texts) {
+    var best = null;
+    texts.forEach(function (t) { var s = stepOf(t); if (s && (!best || s.n > best.n || (s.n === best.n && !s.ing))) best = s; });
+    if (!best) return null;
+    var w = el("div", "strack"); w.setAttribute("role", "img"); w.setAttribute("aria-label", "진행 단계 " + (best.n + 1) + "/" + STEPS.length + " " + STEPS[best.n][0] + (best.ing ? " 진행 중" : ""));
+    var bar = el("div", "strack-b");
+    STEPS.forEach(function (x, i) { var seg = el("i"); if (i < best.n) seg.className = "done"; else if (i === best.n) seg.className = best.ing ? "ing" : "done now"; bar.appendChild(seg); });
+    w.appendChild(bar);
+    var l = el("p", "strack-l"); l.appendChild(el("b", null, (best.n + 1) + "/" + STEPS.length + " " + STEPS[best.n][0] + (best.ing ? " 진행 중" : "")));
+    l.appendChild(document.createTextNode(" " + STEPS[best.n][1])); w.appendChild(l);
+    return w;
+  }
   function buildZones() {
     var list = $("#zoneList");
     (SHOW_LISTINGS ? AREA.zones || [] : []).forEach(function (z) {
       var c = el("article", "lt zone");
       var h = el("div", "lt-head"); h.appendChild(el("h3", null, z.name)); h.appendChild(el("span", "zchip", z.kind)); c.appendChild(h);
       c.appendChild(el("p", "stage", z.stage));
+      var tr = stageTrack([z.stage].concat(z.facts || [])); if (tr) c.appendChild(tr);
       if (z.facts && z.facts.length) { var ul = el("ul", "facts"); z.facts.forEach(function (f) { ul.appendChild(el("li", null, f)); }); c.appendChild(ul); }
       if (z.note) c.appendChild(el("p", "who", z.note));
       list.appendChild(c);
@@ -218,6 +251,7 @@
         var c = el("article", "lt zone");
         var h = el("div", "lt-head"); h.appendChild(el("h3", null, z.n)); h.appendChild(el("span", "zchip", kindOf(z.k))); c.appendChild(h);
         z.k.forEach(function (x) { c.appendChild(el("p", "stage", x[0] + " · " + x[1])); });
+        var tr2 = stageTrack(z.k.map(function (x) { return x[1]; })); if (tr2) c.appendChild(tr2);
         var facts = [];
         if (z.m2) facts.push("면적 " + z.m2.toLocaleString("ko-KR") + "㎡ (약 " + Math.round(z.m2 / 3.3058).toLocaleString("ko-KR") + "평)");
         var other = (z.d || []).filter(function (x) { return x !== key; }).map(function (x) { return x.split(":")[1]; });
