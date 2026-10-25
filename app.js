@@ -91,7 +91,7 @@
     nums.forEach(function (p, i) {
       var row = i ? c.appendChild(el("p", "row")) : tl;
       var n = el("span", "num", p); row.appendChild(n); row.appendChild(copyBtn(p, n));
-      var t = el("a", null, "전화 걸기"); t.href = "tel:" + p.replace(/[^\d+]/g, ""); row.appendChild(t);
+      var t = el("a", "callbtn", "전화 걸기"); t.href = "tel:" + p.replace(/[^\d+]/g, ""); row.appendChild(t);
       // 전화를 걸면 아직 표시가 없는 곳은 "통화함"으로 바로 표시해요 (잘못 눌렀으면 통화함 버튼을 다시 누르면 풀려요)
       t.addEventListener("click", function () { var r = rec(id); if (!r.status) { r.status = "call"; r.st = new Date().toISOString(); paint(id); progress(); applyFilter(); persist(id); changed(id); } });
     });
